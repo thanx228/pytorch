@@ -73,9 +73,7 @@ class TorchBenchmarkBase(torch.nn.Module):
     def module_name(self):
         """ this is used to label the operator being benchmarked
         """
-        if self.user_given_name:
-            return self.user_given_name
-        return self.__class__.__name__
+        return self.user_given_name or self.__class__.__name__
 
     def set_module_name(self, name):
         self.user_given_name = name
@@ -89,15 +87,12 @@ class TorchBenchmarkBase(torch.nn.Module):
         # in the test name.
         skip_key_list = ['device']
 
-        test_name_str = []
-        for key in kargs:
-            value = kargs[key]
-            test_name_str.append(
-                ('' if key in skip_key_list else key)
-                + str(value if type(value) != bool else int(value)))
-        name = (self.module_name() + '_' +
-                '_'.join(test_name_str)).replace(" ", "")
-        return name
+        test_name_str = [
+            ('' if key in skip_key_list else key)
+            + str(value if type(value) != bool else int(value))
+            for key, value in kargs.items()
+        ]
+        return (f'{self.module_name()}_' + '_'.join(test_name_str)).replace(" ", "")
 
 
 class PyTorchOperatorTestCase:
@@ -192,5 +187,5 @@ def create_pytorch_op_test_case(op_bench, test_config):
     test_case = PyTorchOperatorTestCase(op_bench, test_config)
     test_config = test_case.test_config
     op = test_case.op_bench
-    func_name = "{}{}{}".format(op.module_name(), test_case.framework, str(test_config))
+    func_name = f"{op.module_name()}{test_case.framework}{str(test_config)}"
     return (func_name, test_case)

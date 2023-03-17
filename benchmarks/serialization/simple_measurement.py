@@ -5,14 +5,14 @@ use_new = True
 
 class Basic(Benchmark):
     def benchmark(self):
-        x = [torch.ones(200, 200) for i in range(30)]
+        x = [torch.ones(200, 200) for _ in range(30)]
         with Timer() as big1:
             torch.save(x, "big_tensor.zip", _use_new_zipfile_serialization=use_new)
 
         with Timer() as big2:
             v = torch.load("big_tensor.zip")
 
-        x = [torch.ones(10, 10) for i in range(200)]
+        x = [torch.ones(10, 10) for _ in range(200)]
         with Timer() as small1:
             torch.save(x, "small_tensor.zip", _use_new_zipfile_serialization=use_new)
 

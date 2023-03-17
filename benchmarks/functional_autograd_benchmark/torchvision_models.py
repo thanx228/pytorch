@@ -128,8 +128,9 @@ class ResNet(nn.Module):
             # the 2x2 stride with a dilated convolution instead
             replace_stride_with_dilation = [False, False, False]
         if len(replace_stride_with_dilation) != 3:
-            raise ValueError("replace_stride_with_dilation should be None "
-                             "or a 3-element tuple, got {}".format(replace_stride_with_dilation))
+            raise ValueError(
+                f"replace_stride_with_dilation should be None or a 3-element tuple, got {replace_stride_with_dilation}"
+            )
         self.groups = groups
         self.base_width = width_per_group
         self.conv1 = nn.Conv2d(3, self.inplanes, kernel_size=7, stride=2, padding=3,
@@ -177,15 +178,30 @@ class ResNet(nn.Module):
                 norm_layer(planes * block.expansion),
             )
 
-        layers = []
-        layers.append(block(self.inplanes, planes, stride, downsample, self.groups,
-                            self.base_width, previous_dilation, norm_layer))
+        layers = [
+            block(
+                self.inplanes,
+                planes,
+                stride,
+                downsample,
+                self.groups,
+                self.base_width,
+                previous_dilation,
+                norm_layer,
+            )
+        ]
         self.inplanes = planes * block.expansion
-        for _ in range(1, blocks):
-            layers.append(block(self.inplanes, planes, groups=self.groups,
-                                base_width=self.base_width, dilation=self.dilation,
-                                norm_layer=norm_layer))
-
+        layers.extend(
+            block(
+                self.inplanes,
+                planes,
+                groups=self.groups,
+                base_width=self.base_width,
+                dilation=self.dilation,
+                norm_layer=norm_layer,
+            )
+            for _ in range(1, blocks)
+        )
         return nn.Sequential(*layers)
 
     def _forward_impl(self, x):
@@ -210,12 +226,7 @@ class ResNet(nn.Module):
         return self._forward_impl(x)
 
 def _resnet(arch, block, layers, pretrained, progress, **kwargs):
-    model = ResNet(block, layers, **kwargs)
-    # if pretrained:
-    #     state_dict = load_state_dict_from_url(model_urls[arch],
-    #                                           progress=progress)
-    #     model.load_state_dict(state_dict)
-    return model
+    return ResNet(block, layers, **kwargs)
 
 def resnet18(pretrained=False, progress=True, **kwargs):
     r"""ResNet-18 model from
@@ -363,35 +374,20 @@ def _segm_resnet(name, backbone_name, num_classes, aux, pretrained_backbone=True
         return_layers['layer3'] = 'aux'
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
-    aux_classifier = None
-    if aux:
-        inplanes = 1024
-        aux_classifier = FCNHead(inplanes, num_classes)
-
+    aux_classifier = FCNHead(1024, num_classes) if aux else None
     model_map = {
         # 'deeplabv3': (DeepLabHead, DeepLabV3), # Not used
         'fcn': (FCNHead, FCN),
     }
-    inplanes = 2048
-    classifier = model_map[name][0](inplanes, num_classes)
+    classifier = model_map[name][0](2048, num_classes)
     base_model = model_map[name][1]
 
-    model = base_model(backbone, classifier, aux_classifier)
-    return model
+    return base_model(backbone, classifier, aux_classifier)
 
 def _load_model(arch_type, backbone, pretrained, progress, num_classes, aux_loss, **kwargs):
     if pretrained:
         aux_loss = True
-    model = _segm_resnet(arch_type, backbone, num_classes, aux_loss, **kwargs)
-    # if pretrained:
-    #     arch = arch_type + '_' + backbone + '_coco'
-    #     model_url = model_urls[arch]
-    #     if model_url is None:
-    #         raise NotImplementedError('pretrained {} is not supported as of now'.format(arch))
-    #     else:
-    #         state_dict = load_state_dict_from_url(model_url, progress=progress)
-    #         model.load_state_dict(state_dict)
-    return model
+    return _segm_resnet(arch_type, backbone, num_classes, aux_loss, **kwargs)
 
 def fcn_resnet50(pretrained=False, progress=True,
                  num_classes=21, aux_loss=None, **kwargs):
@@ -615,8 +611,7 @@ class SetCriterion(nn.Module):
         # Count the number of predictions that are NOT "no-object" (which is the last class)
         card_pred = (pred_logits.argmax(-1) != pred_logits.shape[-1] - 1).sum(1)
         card_err = F.l1_loss(card_pred.float(), tgt_lengths.float())
-        losses = {'cardinality_error': card_err}
-        return losses
+        return {'cardinality_error': card_err}
 
     def loss_boxes(self, outputs, targets, indices, num_boxes):
         """Compute the losses related to the bounding boxes, the L1 regression loss and the GIoU loss
@@ -630,9 +625,7 @@ class SetCriterion(nn.Module):
 
         loss_bbox = F.l1_loss(src_boxes, target_boxes, reduction='none')
 
-        losses = {}
-        losses['loss_bbox'] = loss_bbox.sum() / num_boxes
-
+        losses = {'loss_bbox': loss_bbox.sum() / num_boxes}
         loss_giou = 1 - torch.diag(generalized_box_iou(
             box_cxcywh_to_xyxy(src_boxes),
             box_cxcywh_to_xyxy(target_boxes)))
@@ -662,11 +655,10 @@ class SetCriterion(nn.Module):
 
         target_masks = target_masks[tgt_idx].flatten(1)
 
-        losses = {
+        return {
             "loss_mask": sigmoid_focal_loss(src_masks, target_masks, num_boxes),
             "loss_dice": dice_loss(src_masks, target_masks, num_boxes),
         }
-        return losses
 
     def _get_src_permutation_idx(self, indices):
         # permute predictions following indices
@@ -712,7 +704,7 @@ class SetCriterion(nn.Module):
         # Compute all the requested losses
         losses = {}
         for loss in self.losses:
-            losses.update(self.get_loss(loss, outputs, targets, indices, num_boxes))
+            losses |= self.get_loss(loss, outputs, targets, indices, num_boxes)
 
         # In case of auxiliary losses, we repeat this process with the output of each intermediate layer.
         if 'aux_outputs' in outputs:
@@ -727,7 +719,7 @@ class SetCriterion(nn.Module):
                         # Logging is enabled only for the last layer
                         kwargs = {'log': False}
                     l_dict = self.get_loss(loss, aux_outputs, targets, indices, num_boxes, **kwargs)
-                    l_dict = {k + f'_{i}': v for k, v in l_dict.items()}
+                    l_dict = {f'{k}_{i}': v for k, v in l_dict.items()}
                     losses.update(l_dict)
 
         return losses

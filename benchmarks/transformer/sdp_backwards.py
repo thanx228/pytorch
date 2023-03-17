@@ -14,7 +14,7 @@ class CompositeMHA(torch.nn.Module):
         self.num_heads = num_heads
 
     def forward(self, query, key, value, mask):
-        if not (query is key and key is value):
+        if not query is key is value:
             raise NotImplementedError(
                 "query, key and value must be the same Tensor for now."
             )

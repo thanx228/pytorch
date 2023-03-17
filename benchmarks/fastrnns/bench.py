@@ -25,22 +25,16 @@ def fit_str(string, colwidth=16):
 
 
 def to_str(item):
-    if isinstance(item, float):
-        return '%.4g' % item
-    return str(item)
+    return '%.4g' % item if isinstance(item, float) else str(item)
 
 
 def print_header(colwidth=16, sep=' '):
-    items = []
-    for item in BenchResult._fields:
-        items.append(fit_str(item))
+    items = [fit_str(item) for item in BenchResult._fields]
     return sep.join(items)
 
 
 def pretty_print(benchresult, colwidth=16, sep=' '):
-    items = []
-    for thing in benchresult:
-        items.append(fit_str(to_str(thing)))
+    items = [fit_str(to_str(thing)) for thing in benchresult]
     return sep.join(items)
 
 # shim for torch.cuda.Event when running on cpu
@@ -61,11 +55,7 @@ def trainbench(name, rnn_creator, nloops=100, warmup=10,
                miniBatch=64, device='cuda', seed=None):
     def train_batch(modeldef):
         # CUDA events for timing
-        if device == 'cuda':
-            timer_class = torch.cuda.Event
-        else:
-            timer_class = Event
-
+        timer_class = torch.cuda.Event if device == 'cuda' else Event
         fwd_start_event = timer_class(enable_timing=True)
         fwd_end_event = timer_class(enable_timing=True)
         bwd_start_event = timer_class(enable_timing=True)
@@ -136,13 +126,13 @@ def print_stderr(*args, **kwargs):
 
 
 def print_json_oss_format(results):
-    oss_results = {}
-    for group_name, group_val in results.items():
-        oss_results[group_name] = {}
-        for model_name, run_time in group_val.items():
-            # Output for OSS
-            oss_results[group_name][model_name] = run_time['avg']
-
+    oss_results = {
+        group_name: {
+            model_name: run_time['avg']
+            for model_name, run_time in group_val.items()
+        }
+        for group_name, group_val in results.items()
+    }
     print(json.dumps(oss_results))
 
 
@@ -154,14 +144,19 @@ def print_json_pep_format(results):
             num_iters = len(run_time['info'])
             info = run_time['info'].tolist()
             for i in range(num_iters):
-                print("Caffe2Observer " + json.dumps(
-                    {
-                        "type": "NET",
-                        "metric": group_name + "-" + model_name,
-                        "unit": "ms",
-                        "value": str(info[i])
-                    }
-                ))
+                print(
+                    (
+                        "Caffe2Observer "
+                        + json.dumps(
+                            {
+                                "type": "NET",
+                                "metric": f"{group_name}-{model_name}",
+                                "unit": "ms",
+                                "value": str(info[i]),
+                            }
+                        )
+                    )
+                )
 
 
 def bench(rnn_runners, group_name, print_json=False, sep=' ', **params):
@@ -181,13 +176,19 @@ def bench(rnn_runners, group_name, print_json=False, sep=' ', **params):
                     raise
 
     return {
-        group_name: {k: {"avg": v.avg_fwd, "std": v.std_fwd, "info": v.info_fwd} for k, v in results.items()},
-        group_name + '-backward': {k: {"avg": v.avg_bwd, "std": v.std_bwd, "info": v.info_bwd} for k, v in results.items()},
+        group_name: {
+            k: {"avg": v.avg_fwd, "std": v.std_fwd, "info": v.info_fwd}
+            for k, v in results.items()
+        },
+        f'{group_name}-backward': {
+            k: {"avg": v.avg_bwd, "std": v.std_bwd, "info": v.info_bwd}
+            for k, v in results.items()
+        },
     }
 
 
 def bench_group(model_list, bench_name, bench_group, bench_args):
-    print_stderr('Benchmarking {}s...'.format(bench_name))
+    print_stderr(f'Benchmarking {bench_name}s...')
     nn_results = bench(get_nn_runners(*model_list), bench_group, **bench_args)
     print_stderr('')
     return nn_results
@@ -268,7 +269,9 @@ if __name__ == '__main__':
             print_stderr(
                 'WARNING: some of the variable sequence length lstms are '
                 'very unoptimized and therefore take forever to run.')
-        results.update(bench_group(vlrnns, 'variable-length sequence LSTM', 'vl_lstm', bench_args))
+        results |= bench_group(
+            vlrnns, 'variable-length sequence LSTM', 'vl_lstm', bench_args
+        )
 
     if 'rnns' in args.group:
         results.update(bench_group(rnns, 'LSTM', 'lstm', bench_args))

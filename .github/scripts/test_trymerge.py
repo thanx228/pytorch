@@ -335,7 +335,9 @@ class TestTryMerge(TestCase):
         conclusions = pr.get_checkrun_conclusions()
         lint_checks = [name for name in conclusions.keys() if "Lint" in name]
         self.assertTrue(len(lint_checks) > 0)
-        self.assertTrue(all([conclusions[name].status == "SUCCESS" for name in lint_checks]))
+        self.assertTrue(
+            all(conclusions[name].status == "SUCCESS" for name in lint_checks)
+        )
 
     @mock.patch('trymerge.gh_get_pr_info', return_value=mock_gh_get_info())
     @mock.patch('trymerge.parse_args', return_value=mock_parse_args(True, False))

@@ -57,15 +57,15 @@ S3_BASE_URL = "https://gha-artifacts.s3.amazonaws.com"
 def get_artifacts_urls(results, suites):
     urls = {}
     for r in results:
-        if "inductor" == r["workflowName"] and "test" in r["jobName"]:
+        if r["workflowName"] == "inductor" and "test" in r["jobName"]:
             config_str, test_str = parse_job_name(r["jobName"])
             suite, shard_id, num_shards, machine = parse_test_str(test_str)
-            workflowId = r["workflowId"]
-            id = r["id"]
-            runAttempt = r["runAttempt"]
-
             if suite in suites:
+                id = r["id"]
                 artifact_filename = f"test-reports-test-{suite}-{shard_id}-{num_shards}-{machine}_{id}.zip"
+                workflowId = r["workflowId"]
+                runAttempt = r["runAttempt"]
+
                 s3_url = f"{S3_BASE_URL}/{repo}/{workflowId}/{runAttempt}/artifact/{artifact_filename}"
                 urls[(suite, int(shard_id))] = s3_url
                 print(f"{suite} {shard_id}, {num_shards}: {s3_url}")

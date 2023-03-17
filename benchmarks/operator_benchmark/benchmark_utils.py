@@ -44,16 +44,18 @@ def numpy_random(dtype, *shapes):
 def set_omp_threads(num_threads):
     existing_value = os.environ.get('OMP_NUM_THREADS', '')
     if existing_value != '':
-        print("Overwriting existing OMP_NUM_THREADS value: {}; Setting it to {}.".format(
-            existing_value, num_threads))
+        print(
+            f"Overwriting existing OMP_NUM_THREADS value: {existing_value}; Setting it to {num_threads}."
+        )
     os.environ["OMP_NUM_THREADS"] = str(num_threads)
 
 
 def set_mkl_threads(num_threads):
     existing_value = os.environ.get('MKL_NUM_THREADS', '')
     if existing_value != '':
-        print("Overwriting existing MKL_NUM_THREADS value: {}; Setting it to {}.".format(
-            existing_value, num_threads))
+        print(
+            f"Overwriting existing MKL_NUM_THREADS value: {existing_value}; Setting it to {num_threads}."
+        )
     os.environ["MKL_NUM_THREADS"] = str(num_threads)
 
 
@@ -85,13 +87,10 @@ def generate_configs(**configs):
     for key, values in configs.items():
         if key == 'sample_func':
             continue
-        tmp_result = []
-        for value in values:
-            tmp_result.append({key : value})
+        tmp_result = [{key : value} for value in values]
         result.append(tmp_result)
 
-    results = configs['sample_func'](*result)
-    return results
+    return configs['sample_func'](*result)
 
 
 def cross_product_configs(**configs):
@@ -110,11 +109,7 @@ def cross_product_configs(**configs):
         tmp_results = [{key : value} for value in values]
         configs_attrs_list.append(tmp_results)
 
-    # TODO(mingzhe0908) remove the conversion to list.
-    # itertools.product produces an iterator that produces element on the fly
-    # while converting to a list produces everything at the same time.
-    generated_configs = list(itertools.product(*configs_attrs_list))
-    return generated_configs
+    return list(itertools.product(*configs_attrs_list))
 
 
 def _validate(configs):
@@ -273,7 +268,7 @@ def random_sample_configs(**configs):
 
     configs_attrs_list = []
     randomsample = RandomSample(configs)
-    for i in range(configs["total_samples"]):
+    for _ in range(configs["total_samples"]):
         tmp_attr_list = randomsample.get_one_set_of_inputs()
         tmp_attr_list.append({"tags" : '_'.join(configs["tags"])})
         configs_attrs_list.append(tmp_attr_list)

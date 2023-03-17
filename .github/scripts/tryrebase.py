@@ -53,9 +53,8 @@ def rebase_ghstack_onto(pr: GitHubPR, repo: GitRepo, onto_branch: str, dry_run: 
     if subprocess.run([sys.executable, "-m", "ghstack", "--help"], capture_output=True).returncode != 0:
         subprocess.run([sys.executable, "-m", "pip", "install", "ghstack"])
     orig_ref = f"{re.sub(r'/head$', '/orig', pr.head_ref())}"
-    onto_branch = f"refs/remotes/origin/{onto_branch}"
-
     repo.fetch(orig_ref, orig_ref)
+    onto_branch = f"refs/remotes/origin/{onto_branch}"
     repo._run_git("rebase", onto_branch, orig_ref)
 
     if repo.rev_parse(orig_ref) == repo.rev_parse(onto_branch):
@@ -107,10 +106,14 @@ def rebase_ghstack_onto(pr: GitHubPR, repo: GitRepo, onto_branch: str, dry_run: 
                                     "please pull locally before adding more changes (for example, via `ghstack " +
                                     f"checkout https://github.com/{org}/{project}/pull/{pr_num}`)", dry_run=dry_run)
                 else:
-                    gh_post_comment(pr.org, pr.project, pr_num,
-                                    f"Successfully rebased `{orig_ref}` onto `{onto_branch}`, please pull locally " +
-                                    "before adding more changes (for example, via `ghstack " +
-                                    f"checkout https://github.com/{org}/{project}/pull/{pr.pr_num}`)", dry_run=dry_run)
+                    gh_post_comment(
+                        pr.org,
+                        pr.project,
+                        pr_num,
+                        f"Successfully rebased `{orig_ref}` onto `{onto_branch}`, please pull locally before adding more changes (for example, via `ghstack "
+                        + f"checkout https://github.com/{org}/{project}/pull/{pr.pr_num}`)",
+                        dry_run=dry_run,
+                    )
 
         if f"Skipped https://github.com/{org}/{project}/pull/{pr.pr_num}" in push_result:
             gh_post_comment(pr.org, pr.project, pr.pr_num,
@@ -123,7 +126,7 @@ def main() -> None:
     org, project = repo.gh_owner_and_name()
 
     pr = GitHubPR(org, project, args.pr_num)
-    onto_branch = args.branch if args.branch else pr.default_branch()
+    onto_branch = args.branch or pr.default_branch()
 
     msg = "@pytorchbot successfully started a rebase job."
     msg += f" Check the current status [here]({os.getenv('GH_RUN_URL')})"

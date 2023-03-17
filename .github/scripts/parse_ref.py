@@ -14,8 +14,7 @@ def set_output(name: str, val: str) -> None:
 
 def main() -> None:
     ref = os.environ["GITHUB_REF"]
-    m = re.match(r'^refs/(\w+)/(.*)$', ref)
-    if m:
+    if m := re.match(r'^refs/(\w+)/(.*)$', ref):
         category, stripped = m.groups()
         if category == "heads":
             set_output("branch", stripped)

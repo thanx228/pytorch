@@ -29,7 +29,7 @@ finally:
     from timm.data import resolve_data_config
     from timm.models import create_model
 
-TIMM_MODELS = dict()
+TIMM_MODELS = {}
 filename = os.path.join(os.path.dirname(__file__), "timm_models_list.txt")
 
 with open(filename, "r") as fh:
@@ -138,7 +138,7 @@ def refresh_model_names():
         return name.split("_")[0]
 
     def populate_family(models):
-        family = dict()
+        family = {}
         for model_name in models:
             family_name = get_family_name(model_name)
             if family_name not in family:
@@ -165,7 +165,7 @@ def refresh_model_names():
 
     filename = "timm_models_list.txt"
     if os.path.exists("benchmarks"):
-        filename = "benchmarks/" + filename
+        filename = f"benchmarks/{filename}"
     with open(filename, "w") as fw:
         for model_name in sorted(chosen_models):
             fw.write(model_name + "\n")
@@ -295,19 +295,13 @@ class TimmRunnner(BenchmarkRunner):
             yield model_name
 
     def pick_grad(self, name, is_training):
-        if is_training:
-            return torch.enable_grad()
-        else:
-            return torch.no_grad()
+        return torch.enable_grad() if is_training else torch.no_grad()
 
     def get_tolerance_and_cosine_flag(self, is_training, current_device, name):
         cosine = self.args.cosine
         tolerance = 1e-3
         if is_training:
-            if REQUIRE_HIGHER_TOLERANCE:
-                tolerance = 2 * 1e-2
-            else:
-                tolerance = 1e-2
+            tolerance = 2 * 1e-2 if REQUIRE_HIGHER_TOLERANCE else 1e-2
         return tolerance, cosine
 
     def _gen_target(self, batch_size, device):

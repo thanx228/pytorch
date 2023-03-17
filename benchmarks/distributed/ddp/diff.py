@@ -31,7 +31,7 @@ def main():
     for key in sorted(keys):
         va = str(ja.get(key, "-"))
         vb = str(jb.get(key, "-"))
-        print("{:20s} {:>20s}  vs  {:>20s}".format(key + ":", va, vb))
+        print("{:20s} {:>20s}  vs  {:>20s}".format(f"{key}:", va, vb))
     print("")
 
     ba = ja["benchmark_results"]
@@ -44,8 +44,8 @@ def main():
 
         model = ra["model"]
         batch_size = int(ra["batch_size"])
-        name = "{} with batch size {}".format(model, batch_size)
-        print("Benchmark: {}".format(name))
+        name = f"{model} with batch size {batch_size}"
+        print(f"Benchmark: {name}")
 
         # Print header
         print("")

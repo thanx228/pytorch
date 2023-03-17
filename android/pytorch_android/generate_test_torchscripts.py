@@ -11,7 +11,7 @@ def scriptAndSave(module, fileName):
     outputFileName = OUTPUT_DIR + fileName
     # note that the lite interpreter model can also be used in full JIT
     script_module._save_for_lite_interpreter(outputFileName)
-    print("Saved to " + outputFileName)
+    print(f"Saved to {outputFileName}")
     print('=' * 80)
 
 class Test(torch.jit.ScriptModule):
@@ -85,9 +85,7 @@ class Test(torch.jit.ScriptModule):
 
     @torch.jit.script_method
     def intEq0None(self, input: int) -> Optional[int]:
-        if input == 0:
-            return None
-        return input
+        return None if input == 0 else input
 
     @torch.jit.script_method
     def str3Concat(self, input: str) -> str:
@@ -100,8 +98,7 @@ class Test(torch.jit.ScriptModule):
     @torch.jit.script_method
     def testAliasWithOffset(self) -> List[Tensor]:
         x = torch.tensor([100, 200])
-        a = [x[0], x[1]]
-        return a
+        return [x[0], x[1]]
 
     @torch.jit.script_method
     def testNonContiguous(self):

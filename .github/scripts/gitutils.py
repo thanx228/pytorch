@@ -140,7 +140,7 @@ class GitRepo:
 
     def show_ref(self, name: str) -> str:
         refs = self._run_git('show-ref', '-s', name).strip().split('\n')
-        if not all(refs[i] == refs[0] for i in range(1, len(refs))):
+        if any(refs[i] != refs[0] for i in range(1, len(refs))):
             raise RuntimeError(f"referce {name} is ambigous")
         return refs[0]
 
@@ -195,18 +195,21 @@ class GitRepo:
                     frc = self.get_commit(from_values.pop())
                     toc = self.get_commit(to_values.pop())
                     # FRC branch might have PR number added to the title
-                    if frc.title != toc.title or frc.author_date != toc.author_date:
-                        # HACK: Same commit were merged, reverted and landed again
-                        # which creates a tracking problem
-                        if (
-                            "pytorch/pytorch" not in self.remote_url() or
-                            frc.commit_hash not in {"0a6a1b27a464ba5be5f587cce2ee12ab8c504dbf",
-                                                    "6d0f4a1d545a8f161df459e8d4ccafd4b9017dbe",
-                                                    "edf909e58f06150f7be41da2f98a3b9de3167bca",
-                                                    "a58c6aea5a0c9f8759a4154e46f544c8b03b8db1",
-                                                    "7106d216c29ca16a3504aa2bedad948ebcf4abc2"}
-                        ):
-                            raise RuntimeError(f"Unexpected differences between {frc} and {toc}")
+                    if (
+                        frc.title != toc.title
+                        or frc.author_date != toc.author_date
+                    ) and (
+                        "pytorch/pytorch" not in self.remote_url()
+                        or frc.commit_hash
+                        not in {
+                            "0a6a1b27a464ba5be5f587cce2ee12ab8c504dbf",
+                            "6d0f4a1d545a8f161df459e8d4ccafd4b9017dbe",
+                            "edf909e58f06150f7be41da2f98a3b9de3167bca",
+                            "a58c6aea5a0c9f8759a4154e46f544c8b03b8db1",
+                            "7106d216c29ca16a3504aa2bedad948ebcf4abc2",
+                        }
+                    ):
+                        raise RuntimeError(f"Unexpected differences between {frc} and {toc}")
                     from_commits.remove(frc.commit_hash)
                     to_commits.remove(toc.commit_hash)
                 continue
@@ -291,9 +294,7 @@ class PeekableIterator(Iterator[str]):
         self._idx = -1
 
     def peek(self) -> Optional[str]:
-        if self._idx + 1 >= len(self._val):
-            return None
-        return self._val[self._idx + 1]
+        return None if self._idx + 1 >= len(self._val) else self._val[self._idx + 1]
 
     def __iter__(self) -> "PeekableIterator":
         return self
@@ -320,7 +321,7 @@ def patterns_to_regex(allowed_patterns: List[str]) -> Any:
         if idx > 0:
             rc += "|"
         pattern_ = PeekableIterator(pattern)
-        assert not any(c in pattern for c in "{}()[]\\")
+        assert all(c not in pattern for c in "{}()[]\\")
         for c in pattern_:
             if c == ".":
                 rc += "\\."

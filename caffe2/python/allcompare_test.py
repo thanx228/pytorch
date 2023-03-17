@@ -62,9 +62,7 @@ class TestAllCompare(hu.HypothesisTestCase):
     )
     @settings(deadline=10000)
     def test_allcompare(self, d, n, num_procs):
-        dims = []
-        for _ in range(d):
-            dims.append(np.random.randint(1, high=n))
+        dims = [np.random.randint(1, high=n) for _ in range(d)]
         test_data = np.random.ranf(size=tuple(dims)).astype(np.float32)
 
         with TemporaryDirectory() as tempdir:
@@ -77,7 +75,7 @@ class TestAllCompare(hu.HypothesisTestCase):
                 processes.append(process)
                 process.start()
 
-            while len(processes) > 0:
+            while processes:
                 process = processes.pop()
                 process.join()
 

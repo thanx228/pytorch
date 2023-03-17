@@ -96,7 +96,7 @@ def generate_conda_matrix(os: str) -> List[Dict[str, str]]:
     ret: List[Dict[str, str]] = []
     arches = ["cpu"]
     python_versions = FULL_PYTHON_VERSIONS
-    if os == "linux" or os == "windows":
+    if os in {"linux", "windows"}:
         arches += CUDA_ARCHES
     for python_version in python_versions:
         # We don't currently build conda packages for rocm
@@ -176,11 +176,7 @@ def generate_libtorch_matrix(os: str, abi_version: str,
 def generate_wheels_matrix(os: str,
                            arches: Optional[List[str]] = None,
                            python_versions: Optional[List[str]] = None) -> List[Dict[str, str]]:
-    package_type = "wheel"
-    if os == "linux":
-        # NOTE: We only build manywheel packages for linux
-        package_type = "manywheel"
-
+    package_type = "manywheel" if os == "linux" else "wheel"
     if python_versions is None:
         python_versions = FULL_PYTHON_VERSIONS
 
@@ -196,7 +192,11 @@ def generate_wheels_matrix(os: str,
     for python_version in python_versions:
         for arch_version in arches:
             gpu_arch_type = arch_type(arch_version)
-            gpu_arch_version = "" if arch_version == "cpu" or arch_version == "cpu-cxx11-abi" else arch_version
+            gpu_arch_version = (
+                ""
+                if arch_version in ["cpu", "cpu-cxx11-abi"]
+                else arch_version
+            )
             # Skip rocm 3.11 binaries for now as the docker image are not correct
             if python_version == "3.11" and gpu_arch_type == "rocm":
                 continue

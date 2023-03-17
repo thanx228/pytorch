@@ -84,10 +84,7 @@ def get_server_rref(server_rank, args, extra_args):
         server_rank,
         args
     )
-    if extra_args is not None:
-        server_args = extra_args.values()
-    else:
-        server_args = []
+    server_args = extra_args.values() if extra_args is not None else []
     if server_rank >= args.ntrainer + args.ncudatrainer + args.nserver:
         trainer_count = args.ncudatrainer / args.ncudaserver
         use_cuda_rpc = True
@@ -120,10 +117,7 @@ def run_trainer(
         server_rref (dict): a dictionary containing server RRefs
     """
     trainer_class = trainer_map[args.trainer]
-    if extra_args is not None:
-        trainer_args = extra_args.values()
-    else:
-        trainer_args = []
+    trainer_args = extra_args.values() if extra_args is not None else []
     trainer_count = args.ntrainer + args.ncudatrainer
     store = c10d.FileStore(args.filestore, trainer_count)
     if args.backend == "gloo":
@@ -180,7 +174,7 @@ def call_trainers(args, extra_args, train_data, server_rrefs):
         server_rrefs (dict): a dictionary containing server RRefs
     """
     futs = []
-    for trainer_rank in range(0, args.ntrainer + args.ncudatrainer):
+    for trainer_rank in range(args.ntrainer + args.ncudatrainer):
         trainer_name = get_name(
             trainer_rank,
             args
@@ -273,11 +267,10 @@ def run_master(rank, data, args, extra_configs, rpc_backend_options):
         world_size=world_size,
         rpc_backend_options=rpc_backend_options
     )
-    server_rrefs = {}
-    for i in range(
-        args.ntrainer + args.ncudatrainer, world_size - 1
-    ):
-        server_rrefs[i] = get_server_rref(i, args, extra_configs["server_config"])
+    server_rrefs = {
+        i: get_server_rref(i, args, extra_configs["server_config"])
+        for i in range(args.ntrainer + args.ncudatrainer, world_size - 1)
+    }
     train_data = split_list(
         list(DataLoader(data, batch_size=args.batch_size)),
         args.ntrainer + args.ncudatrainer

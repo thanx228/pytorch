@@ -17,8 +17,7 @@ class Concat2D2InputBench(benchmark.Benchmark):
     def forward(self, input1, input2):
         x1 = self.add(input1, 0.00001)
         x2 = self.add(input2, 0.00001)
-        y = self.cat((x1, x2), dim=self.concat_dim)
-        return y
+        return self.cat((x1, x2), dim=self.concat_dim)
 
     def reference(self):
         return np.concatenate((self.numpy(self.input1), self.numpy(self.input2)), axis=concat_dim)
@@ -78,8 +77,7 @@ class ConcatGraphOptBench(benchmark.Benchmark):
         x1 = self.add(input1, 0.00001)
         x2 = self.add(input2, 0.00001)
         y = self.cat((x1, x2), dim=self.concat_dim)
-        z = self.relu(y)
-        return z
+        return self.relu(y)
 
     def reference(self):
         return np.concatenate((self.numpy(self.input1), self.numpy(self.input2)), axis=concat_dim)

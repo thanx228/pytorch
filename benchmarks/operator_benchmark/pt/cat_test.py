@@ -89,16 +89,14 @@ cat_configs_manyinputs = op_bench.config_list(
 class CatBenchmark(op_bench.TorchBenchmarkBase):
     def init(self, sizes, N, dim, device):
         random.seed(42)
-        inputs = []
         gen_sizes = []
         if type(sizes) == list and N == -1:
             gen_sizes = sizes
         else:
-            for i in range(N):
+            for _ in range(N):
                 gen_sizes.append([old_size() if callable(old_size) else old_size for old_size in sizes])
 
-        for s in gen_sizes:
-            inputs.append(torch.rand(s, device=device))
+        inputs = [torch.rand(s, device=device) for s in gen_sizes]
         result = torch.empty(0, device=device)
         self.inputs = {
             "result": result,

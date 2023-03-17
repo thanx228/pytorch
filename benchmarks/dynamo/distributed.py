@@ -33,7 +33,7 @@ def torchviz_model(args, model, inputs, rank):
 
 def profile_model(args, model, inputs, rank):
     with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-        for i in range(args.repeat):
+        for _ in range(args.repeat):
             with record_function("Forward"):
                 outputs = model(*inputs)
                 loss = reduce_to_scalar_loss(outputs)
@@ -164,9 +164,7 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    model_name = args.torchbench_model
-    if args.toy_model:
-        model_name = "ToyModel"
+    model_name = "ToyModel" if args.toy_model else args.torchbench_model
     model, inputs = get_model(args)
 
     fn = partial(run_model, args, model, inputs)

@@ -33,8 +33,9 @@ class BatchBoxCoxBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("batch_box_cox")
 
     def forward(self):
-        op = core.CreateOperator("BatchBoxCox", [self.data, self.lambda1, self.lambda2], self.output)
-        return op
+        return core.CreateOperator(
+            "BatchBoxCox", [self.data, self.lambda1, self.lambda2], self.output
+        )
 
 
 op_bench_c2.generate_c2_test(

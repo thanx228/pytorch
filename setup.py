@@ -220,8 +220,9 @@ import platform
 python_min_version = (3, 8, 0)
 python_min_version_str = '.'.join(map(str, python_min_version))
 if sys.version_info < python_min_version:
-    print("You are using Python {}. Python >={} is required.".format(platform.python_version(),
-                                                                     python_min_version_str))
+    print(
+        f"You are using Python {platform.python_version()}. Python >={python_min_version_str} is required."
+    )
     sys.exit(-1)
 
 from setuptools import setup, Extension, find_packages
@@ -267,13 +268,13 @@ for i, arg in enumerate(sys.argv):
         # options.
         CMAKE_ONLY = True
         continue
-    if arg == 'rebuild' or arg == 'build':
+    if arg in ['rebuild', 'build']:
         arg = 'build'  # rebuild is gone, make it build
         EMIT_BUILD_WARNING = True
     if arg == "--":
         filtered_args += sys.argv[i:]
         break
-    if arg == '-q' or arg == '--quiet':
+    if arg in ['-q', '--quiet']:
         VERBOSE_SCRIPT = False
     if arg in ['clean', 'egg_info', 'sdist']:
         RUN_BUILD_DEPS = False
@@ -298,18 +299,12 @@ caffe2_build_dir = os.path.join(cwd, "build")
 
 # CMAKE: full path to python library
 if IS_WINDOWS:
-    cmake_python_library = "{}/libs/python{}.lib".format(
-        sysconfig.get_config_var("prefix"),
-        sysconfig.get_config_var("VERSION"))
+    cmake_python_library = f'{sysconfig.get_config_var("prefix")}/libs/python{sysconfig.get_config_var("VERSION")}.lib'
     # Fix virtualenv builds
     if not os.path.exists(cmake_python_library):
-        cmake_python_library = "{}/libs/python{}.lib".format(
-            sys.base_prefix,
-            sysconfig.get_config_var("VERSION"))
+        cmake_python_library = f'{sys.base_prefix}/libs/python{sysconfig.get_config_var("VERSION")}.lib'
 else:
-    cmake_python_library = "{}/{}".format(
-        sysconfig.get_config_var("LIBDIR"),
-        sysconfig.get_config_var("INSTSONAME"))
+    cmake_python_library = f'{sysconfig.get_config_var("LIBDIR")}/{sysconfig.get_config_var("INSTSONAME")}'
 cmake_python_include_dir = sysconfig.get_path("include")
 
 
@@ -319,7 +314,7 @@ cmake_python_include_dir = sysconfig.get_path("include")
 package_name = os.getenv('TORCH_PACKAGE_NAME', 'torch')
 package_type = os.getenv('PACKAGE_TYPE', 'wheel')
 version = get_torch_version()
-report("Building wheel {}-{}".format(package_name, version))
+report(f"Building wheel {package_name}-{version}")
 
 cmake = CMake()
 
@@ -399,7 +394,7 @@ def mirror_files_into_torchgen():
 
 # all the work we need to do _before_ setup runs
 def build_deps():
-    report('-- Building version ' + version)
+    report(f'-- Building version {version}')
 
     check_submodules()
     check_pydep('yaml', 'pyyaml')
@@ -522,24 +517,28 @@ class build_ext(setuptools.command.build_ext.build_ext):
         else:
             report('-- Not using MKLDNN')
         if cmake_cache_vars['USE_NCCL'] and cmake_cache_vars['USE_SYSTEM_NCCL']:
-            report('-- Using system provided NCCL library at {}, {}'.format(cmake_cache_vars['NCCL_LIBRARIES'],
-                                                                            cmake_cache_vars['NCCL_INCLUDE_DIRS']))
+            report(
+                f"-- Using system provided NCCL library at {cmake_cache_vars['NCCL_LIBRARIES']}, {cmake_cache_vars['NCCL_INCLUDE_DIRS']}"
+            )
         elif cmake_cache_vars['USE_NCCL']:
             report('-- Building NCCL library')
         else:
             report('-- Not using NCCL')
-        if cmake_cache_vars['USE_DISTRIBUTED']:
-            if IS_WINDOWS:
-                report('-- Building without distributed package')
-            else:
-                report('-- Building with distributed package: ')
-                report('  -- USE_TENSORPIPE={}'.format(cmake_cache_vars['USE_TENSORPIPE']))
-                report('  -- USE_GLOO={}'.format(cmake_cache_vars['USE_GLOO']))
-                report('  -- USE_MPI={}'.format(cmake_cache_vars['USE_OPENMPI']))
-        else:
+        if (
+            cmake_cache_vars['USE_DISTRIBUTED']
+            and IS_WINDOWS
+            or not cmake_cache_vars['USE_DISTRIBUTED']
+        ):
             report('-- Building without distributed package')
+        else:
+            report('-- Building with distributed package: ')
+            report(f"  -- USE_TENSORPIPE={cmake_cache_vars['USE_TENSORPIPE']}")
+            report(f"  -- USE_GLOO={cmake_cache_vars['USE_GLOO']}")
+            report(f"  -- USE_MPI={cmake_cache_vars['USE_OPENMPI']}")
         if cmake_cache_vars['STATIC_DISPATCH_BACKEND']:
-            report('-- Using static dispatch with backend {}'.format(cmake_cache_vars['STATIC_DISPATCH_BACKEND']))
+            report(
+                f"-- Using static dispatch with backend {cmake_cache_vars['STATIC_DISPATCH_BACKEND']}"
+            )
         if cmake_cache_vars['USE_LIGHTWEIGHT_DISPATCH']:
             report('-- Using lightweight dispatch')
         if cmake_cache_vars['BUILD_EXECUTORCH']:
@@ -612,16 +611,16 @@ class build_ext(setuptools.command.build_ext.build_ext):
                 continue
             fullname = self.get_ext_fullname(ext.name)
             filename = self.get_ext_filename(fullname)
-            report("\nCopying extension {}".format(ext.name))
+            report(f"\nCopying extension {ext.name}")
 
             relative_site_packages = sysconfig.get_path('purelib').replace(sysconfig.get_path('data'), '').lstrip(os.path.sep)
             src = os.path.join("torch", relative_site_packages, filename)
             if not os.path.exists(src):
-                report("{} does not exist".format(src))
+                report(f"{src} does not exist")
                 del self.extensions[i]
             else:
                 dst = os.path.join(os.path.realpath(self.build_lib), filename)
-                report("Copying {} from {} to {}".format(ext.name, src, dst))
+                report(f"Copying {ext.name} from {src} to {dst}")
                 dst_dir = os.path.dirname(dst)
                 if not os.path.exists(dst_dir):
                     os.makedirs(dst_dir)
@@ -635,10 +634,10 @@ class build_ext(setuptools.command.build_ext.build_ext):
             fullname = self.get_ext_fullname(ext.name)
             filename = self.get_ext_filename(fullname)
             fileext = os.path.splitext(filename)[1]
-            src = os.path.join(os.path.dirname(filename), "functorch" + fileext)
+            src = os.path.join(os.path.dirname(filename), f"functorch{fileext}")
             dst = os.path.join(os.path.realpath(self.build_lib), filename)
             if os.path.exists(src):
-                report("Copying {} from {} to {}".format(ext.name, src, dst))
+                report(f"Copying {ext.name} from {src} to {dst}")
                 dst_dir = os.path.dirname(dst)
                 if not os.path.exists(dst_dir):
                     os.makedirs(dst_dir)
@@ -651,10 +650,10 @@ class build_ext(setuptools.command.build_ext.build_ext):
             fullname = self.get_ext_fullname(ext.name)
             filename = self.get_ext_filename(fullname)
             fileext = os.path.splitext(filename)[1]
-            src = os.path.join(os.path.dirname(filename), "nvfuser" + fileext)
+            src = os.path.join(os.path.dirname(filename), f"nvfuser{fileext}")
             dst = os.path.join(os.path.realpath(self.build_lib), filename)
             if os.path.exists(src):
-                report("Copying {} from {} to {}".format(ext.name, src, dst))
+                report(f"Copying {ext.name} from {src} to {dst}")
                 dst_dir = os.path.dirname(dst)
                 if not os.path.exists(dst_dir):
                     os.makedirs(dst_dir)
@@ -666,7 +665,7 @@ class build_ext(setuptools.command.build_ext.build_ext):
     def get_outputs(self):
         outputs = setuptools.command.build_ext.build_ext.get_outputs(self)
         outputs.append(os.path.join(self.build_lib, "caffe2"))
-        report("setup.py::get_outputs returning {}".format(outputs))
+        report(f"setup.py::get_outputs returning {outputs}")
         return outputs
 
     def create_compile_commands(self):
@@ -771,12 +770,10 @@ class clean(setuptools.Command):
             ignores = f.read()
             pat = re.compile(r'^#( BEGIN NOT-CLEAN-FILES )?')
             for wildcard in filter(None, ignores.split('\n')):
-                match = pat.match(wildcard)
-                if match:
+                if match := pat.match(wildcard):
                     if match.group(1):
                         # Marker is found and stop reading .gitignore.
                         break
-                    # Ignore lines which begin with '#'.
                 else:
                     # Don't remove absolute paths from the system
                     wildcard = wildcard.lstrip('./')
@@ -896,11 +893,11 @@ def configure_extension_build():
 
     def make_relative_rpath_args(path):
         if IS_DARWIN:
-            return ['-Wl,-rpath,@loader_path/' + path]
+            return [f'-Wl,-rpath,@loader_path/{path}']
         elif IS_WINDOWS:
             return []
         else:
-            return ['-Wl,-rpath,$ORIGIN/' + path]
+            return [f'-Wl,-rpath,$ORIGIN/{path}']
 
     ################################################################################
     # Declare extensions and package
@@ -945,34 +942,24 @@ def configure_extension_build():
 
     if cmake_cache_vars['BUILD_CAFFE2']:
         extensions.append(
-            Extension(
-                name=str('caffe2.python.caffe2_pybind11_state'),
-                sources=[]),
+            Extension(name='caffe2.python.caffe2_pybind11_state', sources=[])
         )
         if cmake_cache_vars['USE_CUDA']:
             extensions.append(
                 Extension(
-                    name=str('caffe2.python.caffe2_pybind11_state_gpu'),
-                    sources=[]),
+                    name='caffe2.python.caffe2_pybind11_state_gpu', sources=[]
+                )
             )
         if cmake_cache_vars['USE_ROCM']:
             extensions.append(
                 Extension(
-                    name=str('caffe2.python.caffe2_pybind11_state_hip'),
-                    sources=[]),
+                    name='caffe2.python.caffe2_pybind11_state_hip', sources=[]
+                )
             )
     if cmake_cache_vars['BUILD_FUNCTORCH']:
-        extensions.append(
-            Extension(
-                name=str('functorch._C'),
-                sources=[]),
-        )
+        extensions.append(Extension(name='functorch._C', sources=[]))
     if cmake_cache_vars['BUILD_NVFUSER']:
-        extensions.append(
-            Extension(
-                name=str('nvfuser._C'),
-                sources=[]),
-        )
+        extensions.append(Extension(name='nvfuser._C', sources=[]))
 
     cmdclass = {
         'bdist_wheel': wheel_concatenate,
@@ -1010,7 +997,7 @@ def print_box(msg):
     size = max(len(l) + 1 for l in lines)
     print('-' * (size + 2))
     for l in lines:
-        print('|{}{}|'.format(l, ' ' * (size - len(l))))
+        print(f"|{l}{' ' * (size - len(l))}|")
     print('-' * (size + 2))
 
 
@@ -1035,7 +1022,10 @@ def main():
                 triton_pin = f.read().strip()
             with open(triton_version_file) as f:
                 triton_version = f.read().strip()
-            extras_require['dynamo'] = ['pytorch-triton==' + triton_version + '+' + triton_pin[:10], 'jinja2']
+            extras_require['dynamo'] = [
+                f'pytorch-triton=={triton_version}+{triton_pin[:10]}',
+                'jinja2',
+            ]
 
     # Parse the command line and check the arguments before we proceed with
     # building deps and setup. We need to set values so `--help` works.
@@ -1236,8 +1226,10 @@ def main():
     setup(
         name=package_name,
         version=version,
-        description=("Tensors and Dynamic neural networks in "
-                     "Python with strong GPU acceleration"),
+        description=(
+            "Tensors and Dynamic neural networks in "
+            "Python with strong GPU acceleration"
+        ),
         long_description=long_description,
         long_description_content_type="text/markdown",
         ext_modules=extensions,
@@ -1257,23 +1249,28 @@ def main():
         download_url='https://github.com/pytorch/pytorch/tags',
         author='PyTorch Team',
         author_email='packages@pytorch.org',
-        python_requires='>={}'.format(python_min_version_str),
-        # PyPI package information.
-        classifiers=[
-            'Development Status :: 5 - Production/Stable',
-            'Intended Audience :: Developers',
-            'Intended Audience :: Education',
-            'Intended Audience :: Science/Research',
-            'License :: OSI Approved :: BSD License',
-            'Topic :: Scientific/Engineering',
-            'Topic :: Scientific/Engineering :: Mathematics',
-            'Topic :: Scientific/Engineering :: Artificial Intelligence',
-            'Topic :: Software Development',
-            'Topic :: Software Development :: Libraries',
-            'Topic :: Software Development :: Libraries :: Python Modules',
-            'Programming Language :: C++',
-            'Programming Language :: Python :: 3',
-        ] + ['Programming Language :: Python :: 3.{}'.format(i) for i in range(python_min_version[1], version_range_max)],
+        python_requires=f'>={python_min_version_str}',
+        classifiers=(
+            [
+                'Development Status :: 5 - Production/Stable',
+                'Intended Audience :: Developers',
+                'Intended Audience :: Education',
+                'Intended Audience :: Science/Research',
+                'License :: OSI Approved :: BSD License',
+                'Topic :: Scientific/Engineering',
+                'Topic :: Scientific/Engineering :: Mathematics',
+                'Topic :: Scientific/Engineering :: Artificial Intelligence',
+                'Topic :: Software Development',
+                'Topic :: Software Development :: Libraries',
+                'Topic :: Software Development :: Libraries :: Python Modules',
+                'Programming Language :: C++',
+                'Programming Language :: Python :: 3',
+            ]
+            + [
+                f'Programming Language :: Python :: 3.{i}'
+                for i in range(python_min_version[1], version_range_max)
+            ]
+        ),
         license='BSD-3',
         keywords='pytorch, machine learning',
     )

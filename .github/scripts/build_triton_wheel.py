@@ -26,8 +26,7 @@ def check_and_replace(inp: str, src: str, dst: str) -> str:
 
 
 def patch_setup_py(path: Path, *, version: str, name: str = "triton") -> None:
-    with open(path) as f:
-        orig = f.read()
+    orig = Path(path).read_text()
     # Replace name
     orig = check_and_replace(orig, "name=\"triton\",", f"name=\"{name}\",")
     # Replace version
@@ -37,8 +36,7 @@ def patch_setup_py(path: Path, *, version: str, name: str = "triton") -> None:
 
 
 def patch_init_py(path: Path, *, version: str) -> None:
-    with open(path) as f:
-        orig = f.read()
+    orig = Path(path).read_text()
     # Replace version
     orig = check_and_replace(orig, "__version__ = '2.0.0'", f"__version__ = \"{version}\"")
     with open(path, "w") as f:

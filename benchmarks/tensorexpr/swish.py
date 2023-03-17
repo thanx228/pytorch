@@ -15,8 +15,7 @@ class SwishBench(benchmark.Benchmark):
         self.sixth = self.zeros + 1.0 / 6.0
 
     def forward(self, inp):
-        y = inp * (torch.min(torch.relu(inp), self.six) + self.three) * self.sixth
-        return y
+        return inp * (torch.min(torch.relu(inp), self.six) + self.three) * self.sixth
 
     def reference(self):
         return self.numpy(self.forward(self.data))

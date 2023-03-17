@@ -51,7 +51,7 @@ class IOSJob:
             props_dict["context"] = "org-member"
 
         if self.extra_props:
-            props_dict.update(self.extra_props)
+            props_dict |= self.extra_props
 
         props_dict["filters"] = gen_filter_dict_exclude()
 

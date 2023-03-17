@@ -135,13 +135,10 @@ MODEL_FSDP_WRAP = {
 
 
 def apply_fsdp(args, model, use_checkpointing=False, use_wrap_policy=True):
-    wrap_policy = None
     blocks = MODEL_FSDP_WRAP[
         "toy_model" if model.__class__ is ToyModel else args.torchbench_model
     ]
-    if use_wrap_policy:
-        wrap_policy = ModuleWrapPolicy(blocks)
-
+    wrap_policy = ModuleWrapPolicy(blocks) if use_wrap_policy else None
     model = FSDP(model, auto_wrap_policy=wrap_policy, use_orig_params=True)
     if use_checkpointing:
         fsdp_checkpointing_base(model, blocks)

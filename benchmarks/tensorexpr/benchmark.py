@@ -21,7 +21,7 @@ class Benchmark:
         elif mode == "fwd":
             self.requires_grad = False
         else:
-            raise ValueError("invalid mode: %s" % (mode))
+            raise ValueError(f"invalid mode: {mode}")
         self.result_grad = None
         self.grad_variables = []
         self.engine = tensor_engine.get_engine()
@@ -66,13 +66,7 @@ class Benchmark:
         if "NNC_NUM_THREADS" in os.environ:
             num_threads_str = os.environ["NNC_NUM_THREADS"]
             device += num_threads_str
-        return "%s: %s_%s_%s_%s" % (
-            self.engine.mode,
-            self.module(),
-            self.mode,
-            device,
-            config_str,
-        )
+        return f"{self.engine.mode}: {self.module()}_{self.mode}_{device}_{config_str}"
 
     @staticmethod
     def module():
@@ -114,10 +108,7 @@ class Benchmark:
         return v
 
     def compute(self):
-        if self.bm_jit:
-            return self.bm_jit(*self.inputs)
-        else:
-            return self.forward(*self.inputs)
+        return self.bm_jit(*self.inputs) if self.bm_jit else self.forward(*self.inputs)
 
     def run(self, args):
         self.print_ir = args.print_ir
@@ -149,10 +140,7 @@ class Benchmark:
 
     def run_impl(self, use_fuser):
         warmups = 10
-        if self.device == "cuda":
-            iters = 1000
-        else:
-            iters = 10
+        iters = 1000 if self.device == "cuda" else 10
         engine = tensor_engine.get_engine()
 
         self.bm_jit = None
@@ -213,7 +201,7 @@ class Benchmark:
                 msg += ", compute %.2f Gops/s" % result_dict["compute_workload"]
             print(msg)
         else:
-            raise Exception("Unknown output_type " + self.output_type)
+            raise Exception(f"Unknown output_type {self.output_type}")
 
 
 @contextlib.contextmanager
@@ -289,7 +277,7 @@ class DynamicShape:
     # pre-compute inputs so the creations of random tensors
     # do not add to the compute time
     def load_inputs(self):
-        for i in range(self.SAMPLE_SIZE - 1):
+        for _ in range(self.SAMPLE_SIZE - 1):
             self.instantiate_input()
 
     # returns a randomized shape
@@ -297,10 +285,7 @@ class DynamicShape:
         if not self._enable_dynamic_shapes:
             return shape
         ratios = np.random.uniform(self._dynamic_range, 1.0, len(shape))
-        dyn_shape = list(
-            np.multiply(shape, ratios).astype(int)
-        )
-        return dyn_shape
+        return list(np.multiply(shape, ratios).astype(int))
 
 
 benchmark_classes = []

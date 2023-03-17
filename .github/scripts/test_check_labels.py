@@ -27,7 +27,6 @@ def mock_delete_all_label_err_comments(pr: "GitHubPR") -> None:
 
 def mock_get_comments() -> List[GitHubComment]:
     return [
-        # Case 1 - a non label err comment
         GitHubComment(
             body_text="mock_body_text",
             created_at="",
@@ -36,9 +35,8 @@ def mock_get_comments() -> List[GitHubComment]:
             editor_login=None,
             database_id=1,
         ),
-        # Case 2 - a label err comment
         GitHubComment(
-            body_text=" #" + LABEL_ERR_MSG_TITLE,
+            body_text=f" #{LABEL_ERR_MSG_TITLE}",
             created_at="",
             author_login=BOT_AUTHORS[1],
             author_association="",

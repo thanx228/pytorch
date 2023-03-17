@@ -55,7 +55,7 @@ class Caffe2BenchmarkBase:
     def feed_tensor(self, tensor, device='cpu'):
         """ Similar to tensor, but can supply any data compatible with FeedBlob
         """
-        blob_name = 'blob_' + str(Caffe2BenchmarkBase.tensor_index)
+        blob_name = f'blob_{str(Caffe2BenchmarkBase.tensor_index)}'
         dev = self._device_option(device)
         with core.DeviceScope(dev):
             workspace.FeedBlob(blob_name, tensor)
@@ -65,9 +65,7 @@ class Caffe2BenchmarkBase:
     def module_name(self):
         """ this is used to label the operator being benchmarked
         """
-        if self.user_provided_name:
-            return self.user_provided_name
-        return self.__class__.__name__
+        return self.user_provided_name or self.__class__.__name__
 
     def set_module_name(self, name):
         self.user_provided_name = name
@@ -85,13 +83,10 @@ class Caffe2BenchmarkBase:
             label a specific test
         """
         if name_type == "long":
-            test_name_str = []
-            for key in kargs:
-                value = kargs[key]
-                test_name_str.append(
-                    key + self._value_to_str(value))
-            name = (self.module_name() + '_' +
-                    '_'.join(test_name_str)).replace(" ", "")
+            test_name_str = [
+                key + self._value_to_str(value) for key, value in kargs.items()
+            ]
+            name = (f'{self.module_name()}_' + '_'.join(test_name_str)).replace(" ", "")
         elif name_type == "short":
             # this is used to generate test name based on unique index
             name = '_'.join([self.module_name(), 'test', str(Caffe2BenchmarkBase.test_index)])
@@ -122,7 +117,7 @@ class Caffe2OperatorTestCase:
         with core.DeviceScope(self.op_bench.dev):
             op = self.op_bench.forward()
         if not workspace.RunOperatorMultiple(op, num_runs):
-            raise ValueError("Unable to run operator test case: {}".format(self.test_name))
+            raise ValueError(f"Unable to run operator test case: {self.test_name}")
 
     def run_backward(self, num_runs, print_per_iter=False):
         """ Run the backward path of an operator in a loop
@@ -130,7 +125,9 @@ class Caffe2OperatorTestCase:
         with core.DeviceScope(self.op_bench.dev):
             op = self.op_bench.backward()
         if not workspace.RunOperatorMultiple(op, num_runs):
-            raise ValueError("Unable to run operator gradient test case: {}".format(self.test_name))
+            raise ValueError(
+                f"Unable to run operator gradient test case: {self.test_name}"
+            )
 
     def _print_per_iter(self):
         pass
@@ -140,7 +137,7 @@ def create_caffe2_op_test_case(op_bench, test_config):
     test_case = Caffe2OperatorTestCase(op_bench, test_config)
     test_config = test_case.test_config
     op = test_case.op_bench
-    func_name = "{}{}{}".format(op.module_name(), test_case.framework, str(test_config))
+    func_name = f"{op.module_name()}{test_case.framework}{str(test_config)}"
     return (func_name, test_case)
 
 
@@ -180,10 +177,7 @@ def generate_c2_test_from_ops(ops_metadata, bench_op, tags):
         op = bench_op()
         op.init(**test_attrs)
         test_name = op.test_name("short")
-        input_config = "Shapes: {}, Type: {}, Args: {}".format(
-            op_metadata.input_dims,
-            op_metadata.input_types,
-            str(op_metadata.args))
+        input_config = f"Shapes: {op_metadata.input_dims}, Type: {op_metadata.input_types}, Args: {str(op_metadata.args)}"
         test_config = TestConfig(test_name, input_config, tags, run_backward=False)
         if op is not None:
             create_caffe2_op_test_case(

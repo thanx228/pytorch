@@ -27,7 +27,7 @@ def get_latest_commits() -> List[str]:
         ],
         encoding="ascii",
     )
-    commits = _check_output(
+    return _check_output(
         [
             "git",
             "rev-list",
@@ -36,8 +36,6 @@ def get_latest_commits() -> List[str]:
         ],
         encoding="ascii",
     ).splitlines()
-
-    return commits
 
 def query_commits(commits: List[str]) -> List[Dict[str, Any]]:
     rs = rockset.RocksetClient(
@@ -64,16 +62,16 @@ def print_commit_status(commit: str, results: Dict[str, Any]) -> None:
             print(f"\t{check['conclusion']:>10}: {check['name']}")
 
 def get_commit_results(commit: str, results: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-    workflow_checks = []
-    for check in results:
-        if check['sha'] == commit:
-            workflow_checks.append(WorkflowCheck(
-                workflowName=check['workflowName'],
-                name=check['name'],
-                jobName=check['jobName'],
-                conclusion=check['conclusion'],
-            )._asdict())
-    return workflow_checks
+    return [
+        WorkflowCheck(
+            workflowName=check['workflowName'],
+            name=check['name'],
+            jobName=check['jobName'],
+            conclusion=check['conclusion'],
+        )._asdict()
+        for check in results
+        if check['sha'] == commit
+    ]
 
 def isGreen(commit: str, results: List[Dict[str, Any]]) -> Tuple[bool, str]:
     workflow_checks = get_commit_results(commit, results)
@@ -92,12 +90,11 @@ def isGreen(commit: str, results: List[Dict[str, Any]]) -> Tuple[bool, str]:
         for required_check in regex:
             if re.match(required_check, workflowName, flags=re.IGNORECASE):
                 if conclusion not in ["success", "skipped"]:
-                    return (False, workflowName + " checks were not successful")
+                    return False, f"{workflowName} checks were not successful"
                 else:
                     regex[required_check] = True
 
-    missing_workflows = [x for x in regex.keys() if not regex[x]]
-    if len(missing_workflows) > 0:
+    if missing_workflows := [x for x in regex if not regex[x]]:
         return (False, "missing required workflows: " + ", ".join(missing_workflows))
 
     return (True, "")
@@ -110,7 +107,7 @@ def get_latest_green_commit(commits: List[str], results: List[Dict[str, Any]]) -
             eprint("GREEN")
             return commit
         else:
-            eprint("RED: " + msg)
+            eprint(f"RED: {msg}")
     return None
 
 def main() -> None:

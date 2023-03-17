@@ -86,7 +86,10 @@ class FlakyRule:
             job is not None
             and self.name in job.get('name', '')
             and job.get("failure_captures") is not None
-            and all([capture in job.get("failure_captures", []) for capture in self.captures])
+            and all(
+                capture in job.get("failure_captures", [])
+                for capture in self.captures
+            )
         )
 
 GH_PR_REVIEWS_FRAGMENT = """
@@ -445,10 +448,7 @@ def gh_get_team_members(org: str, name: str) -> List[str]:
     return rc
 
 def get_check_run_name_prefix(workflow_run: Any) -> str:
-    if workflow_run is None:
-        return ""
-    else:
-        return f'{workflow_run["workflow"]["name"]} / '
+    return "" if workflow_run is None else f'{workflow_run["workflow"]["name"]} / '
 
 
 def is_passing_status(status: Optional[str]) -> bool:
@@ -721,10 +721,11 @@ class GitHubPR:
                                 number=self.pr_num,
                                 cursor=info["reviews"]["pageInfo"]["startCursor"])
                 info = rc["data"]["repository"]["pullRequest"]
-        reviews = {}
-        for (author, state) in self._reviews:
-            if state != "COMMENTED":
-                reviews[author] = state
+        reviews = {
+            author: state
+            for author, state in self._reviews
+            if state != "COMMENTED"
+        }
         return list(reviews.items())
 
     def get_approved_by(self) -> List[str]:
@@ -821,16 +822,15 @@ class GitHubPR:
         return self.conclusions
 
     def get_authors(self) -> Dict[str, str]:
-        rc = {}
         # TODO: replace with  `self.get_commit_count()` when GraphQL pagination can be used
         # to fetch all commits, see https://gist.github.com/malfet/4f35321b0c9315bcd7116c7b54d83372
         # and https://support.github.com/ticket/enterprise/1642/1659119
         if self.get_commit_count() <= 250:
             assert len(self._fetch_authors()) == self.get_commit_count()
-        for idx in range(len(self._fetch_authors())):
-            rc[self.get_committer_login(idx)] = self.get_committer_author(idx)
-
-        return rc
+        return {
+            self.get_committer_login(idx): self.get_committer_author(idx)
+            for idx in range(len(self._fetch_authors()))
+        }
 
     def get_author(self) -> str:
         authors = self.get_authors()
@@ -839,9 +839,7 @@ class GitHubPR:
         creator = self.get_pr_creator_login()
         # If PR creator is not among authors
         # Assume it was authored by first commit author
-        if creator not in authors:
-            return self.get_committer_author(0)
-        return authors[creator]
+        return authors[creator] if creator in authors else self.get_committer_author(0)
 
     def get_title(self) -> str:
         return cast(str, self.info["title"])
@@ -946,7 +944,7 @@ class GitHubPR:
         msg_body = re.sub(RE_PR_CC_LINE, "", self.get_body())
         if filter_ghstack:
             msg_body = re.sub(RE_GHSTACK_DESC, "", msg_body)
-        msg = self.get_title() + f" (#{self.pr_num})\n\n"
+        msg = f"{self.get_title()} (#{self.pr_num})\n\n"
         msg += msg_body
         msg += f"\nPull Request resolved: {self.get_pr_url()}\n"
         msg += f"Approved by: {approved_by_urls}\n"
@@ -987,19 +985,18 @@ class GitHubPR:
         branch_to_merge_into = self.default_branch() if branch is None else branch
         if repo.current_branch() != branch_to_merge_into:
             repo.checkout(branch_to_merge_into)
-        if not self.is_ghstack_pr():
-            msg = self.gen_commit_message()
-            pr_branch_name = f"__pull-request-{self.pr_num}__init__"
-            self.fetch(pr_branch_name)
-            repo._run_git("merge", "--squash", pr_branch_name)
-            repo._run_git("commit", f"--author=\"{self.get_author()}\"", "-m", msg)
-            return []
-        else:
+        if self.is_ghstack_pr():
             return self.merge_ghstack_into(
                 repo,
                 skip_mandatory_checks,
                 comment_id=comment_id,
             )
+        msg = self.gen_commit_message()
+        pr_branch_name = f"__pull-request-{self.pr_num}__init__"
+        self.fetch(pr_branch_name)
+        repo._run_git("merge", "--squash", pr_branch_name)
+        repo._run_git("commit", f"--author=\"{self.get_author()}\"", "-m", msg)
+        return []
 
 class MergeRuleFailedError(RuntimeError):
     def __init__(self, message: str, rule: Optional['MergeRule'] = None) -> None:
@@ -1119,13 +1116,9 @@ def find_matching_merge_rule(
     for rule in rules:
         rule_name = rule.name
         patterns_re = patterns_to_regex(rule.patterns)
-        non_matching_files = []
-
-        # Does this rule apply to all the files?
-        for fname in changed_files:
-            if not patterns_re.match(fname):
-                non_matching_files.append(fname)
-        if len(non_matching_files) > 0:
+        if non_matching_files := [
+            fname for fname in changed_files if not patterns_re.match(fname)
+        ]:
             num_matching_files = len(changed_files) - len(non_matching_files)
             if num_matching_files > reject_reason_score:
                 reject_reason_score = num_matching_files
@@ -1137,7 +1130,7 @@ def find_matching_merge_rule(
             continue
 
         # If rule needs approvers but PR has not been reviewed, skip it
-        if len(rule.approved_by) > 0 and len(approved_by) == 0:
+        if len(rule.approved_by) > 0 and not approved_by:
             if reject_reason_score < 10000:
                 reject_reason_score = 10000
                 reject_reason = f"PR #{pr.pr_num} has not been reviewed yet"
@@ -1153,7 +1146,7 @@ def find_matching_merge_rule(
                 rule_approvers_set.add(approver)
         approvers_intersection = approved_by.intersection(rule_approvers_set)
         # If rule requires approvers but they aren't the ones that reviewed PR
-        if len(approvers_intersection) == 0 and len(rule_approvers_set) > 0:
+        if not approvers_intersection and rule_approvers_set:
             if reject_reason_score < 10000:
                 reject_reason_score = 10000
                 reject_reason = "\n".join((
@@ -1291,7 +1284,7 @@ def get_classifications(
             and head_sha_job["failure_captures"] == merge_base_job["failure_captures"]
         ):
             check.classification = "BROKEN_TRUNK"
-        elif any([rule.matches(head_sha_job) for rule in flaky_rules]):
+        elif any(rule.matches(head_sha_job) for rule in flaky_rules):
             check.classification = "FLAKY"
     return checks
 
@@ -1399,11 +1392,17 @@ def categorize_checks(
     failed_checks: List[Tuple[str, Optional[str]]] = []
     ok_failed_checks: List[Tuple[str, Optional[str]]] = []
 
-    relevant_checknames = [name for name in check_runs.keys() if any([x in name for x in required_checks])]
+    relevant_checknames = [
+        name
+        for name in check_runs.keys()
+        if any(x in name for x in required_checks)
+    ]
 
-    for checkname in required_checks:
-        if all([checkname not in x for x in check_runs.keys()]):
-            pending_checks.append((checkname, None))
+    pending_checks.extend(
+        (checkname, None)
+        for checkname in required_checks
+        if all(checkname not in x for x in check_runs.keys())
+    )
     for checkname in relevant_checknames:
         if check_runs[checkname].status is None:
             pending_checks.append((checkname, check_runs[checkname].url))
@@ -1423,7 +1422,7 @@ def categorize_checks(
         )
 
     if len(ok_failed_checks) > ok_failed_checks_threshold:
-        failed_checks = failed_checks + ok_failed_checks
+        failed_checks += ok_failed_checks
 
     return (pending_checks, failed_checks)
 
@@ -1513,12 +1512,12 @@ def merge(pr_num: int, repo: GitRepo,
                 raise RuntimeError(f"{len(failing)} jobs have failed, first few of them are: " +
                                    ', '.join(f"[{x[0]}]({x[1]})" for x in failing[:5]))
             if len(pending) > 0:
-                if failed_rule_message is not None:
-                    raise failed_rule_message
-                else:
+                if failed_rule_message is None:
                     raise MandatoryChecksMissingError(f"Still waiting for {len(pending)} jobs to finish, " +
                                                       f"first few of them are: {', '.join(x[0] for x in pending[:5])}")
 
+                else:
+                    raise failed_rule_message
             return pr.merge_into(
                 repo,
                 dry_run=dry_run,

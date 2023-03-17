@@ -100,7 +100,7 @@ class CompositeMHA(torch.nn.Module):
         self.num_heads = num_heads
 
     def forward(self, query, key, value, mask):
-        if not (query is key and key is value):
+        if not query is key is value:
             raise NotImplementedError(
                 "query, key and value must be the same Tensor for now."
             )
@@ -264,24 +264,27 @@ def run_single_experiment(config: ExperimentConfig) -> ExperimentResults:
 def generate_experiments(
     batch_sizes, num_heads, max_seq_lens, embed_dims, dtypes, pad_percentages
 ) -> List[ExperimentConfig]:
-    configs = []
-    for bsz, n_heads, seq_len, embed_dim, dtype, padding in itertools.product(
-        batch_sizes, num_heads, max_seq_lens, embed_dims, dtypes, pad_percentages
-    ):
-        configs.append(
-            ExperimentConfig(
-                batch_size=bsz,
-                num_heads=n_heads,
-                max_sequence_len=seq_len,
-                embed_dimension=embed_dim,
-                dtype=dtype,
-                pad_percentage=padding,
-                enable_math=False,
-                enable_flash=True,
-                enable_mem_efficient=True,
-            )
+    return [
+        ExperimentConfig(
+            batch_size=bsz,
+            num_heads=n_heads,
+            max_sequence_len=seq_len,
+            embed_dimension=embed_dim,
+            dtype=dtype,
+            pad_percentage=padding,
+            enable_math=False,
+            enable_flash=True,
+            enable_mem_efficient=True,
         )
-    return configs
+        for bsz, n_heads, seq_len, embed_dim, dtype, padding in itertools.product(
+            batch_sizes,
+            num_heads,
+            max_seq_lens,
+            embed_dims,
+            dtypes,
+            pad_percentages,
+        )
+    ]
 
 
 def main(save_path: Optional[Path]):

@@ -50,15 +50,17 @@ class QComparatorBenchmark(op_bench.TorchBenchmarkBase):
 
     def forward(self, q_input_a, q_input_b, out_variant: bool, other_scalar: bool):
         if out_variant:
-            if other_scalar:
-                return self.qop(q_input_a, 42, out=torch.tensor(True, dtype=torch.bool))
-            else:
-                return self.qop(q_input_a, q_input_b, out=torch.tensor(True, dtype=torch.bool))
+            return (
+                self.qop(q_input_a, 42, out=torch.tensor(True, dtype=torch.bool))
+                if other_scalar
+                else self.qop(
+                    q_input_a, q_input_b, out=torch.tensor(True, dtype=torch.bool)
+                )
+            )
+        if other_scalar:
+            return self.qop(q_input_a, 42)
         else:
-            if other_scalar:
-                return self.qop(q_input_a, 42)
-            else:
-                return self.qop(q_input_a, q_input_b)
+            return self.qop(q_input_a, q_input_b)
 
 
 

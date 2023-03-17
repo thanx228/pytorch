@@ -222,9 +222,7 @@ Works only with Python3.\n A few examples:
                 if allow_skip:
                     continue
                 else:
-                    raise ValueError(
-                        "attempted to run an unsupported benchmark: %s" % (bench.desc())
-                    )
+                    raise ValueError(f"attempted to run an unsupported benchmark: {bench.desc()}")
             bench.run(args)
 
     def run_with_input_iter(bench_cls, input_iter, allow_skip=True):
@@ -261,9 +259,7 @@ Works only with Python3.\n A few examples:
                 if allow_skip:
                     continue
                 else:
-                    raise ValueError(
-                        "attempted to run an unsupported benchmark: %s" % (bench.desc())
-                    )
+                    raise ValueError(f"attempted to run an unsupported benchmark: {bench.desc()}")
             bench.run(args)
 
     benchmark_classes = benchmark.benchmark_classes
@@ -295,15 +291,15 @@ Works only with Python3.\n A few examples:
                 if name.startswith(cls_module):
                     match_class_name = True
                     if name[len(cls_module)] != "_":
-                        raise ValueError("invalid name: %s" % (name))
+                        raise ValueError(f"invalid name: {name}")
                     config_str = name[(len(cls_module) + 1) :]
                     config = config_str.split("_")
                     if len(config) < 2:
-                        raise ValueError("invalid config: %s" % config)
-                    mode, device = config[0:2]
+                        raise ValueError(f"invalid config: {config}")
+                    mode, device = config[:2]
                     # TODO: make sure virtual devices such as 'cpu1' and 'cpu4' are supported.
                     if mode not in ["fwd", "both"]:
-                        raise ValueError("invalid mode: %s" % (mode))
+                        raise ValueError(f"invalid mode: {mode}")
                     for i, entry in enumerate(config):
                         try:
                             value = int(entry)

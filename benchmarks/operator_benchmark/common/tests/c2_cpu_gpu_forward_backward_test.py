@@ -20,17 +20,17 @@ class AddBenchmark(op_bench.Caffe2BenchmarkBase):
         self.output = self.tensor([M, N, K], device=device)
 
     def forward(self):
-        op = core.CreateOperator(
+        return core.CreateOperator(
             "Add", [self.input_one, self.input_two], self.output, **self.args
         )
-        return op
 
     def backward(self):
-        grad_op = core.CreateOperator(
-            "AddGradient", [self.output, self.input_one, self.input_two],
-            [self.input_one_grad, self.input_two_grad], **self.args
+        return core.CreateOperator(
+            "AddGradient",
+            [self.output, self.input_one, self.input_two],
+            [self.input_one_grad, self.input_two_grad],
+            **self.args
         )
-        return grad_op
 
 
 op_bench.generate_c2_test(add_configs, AddBenchmark)

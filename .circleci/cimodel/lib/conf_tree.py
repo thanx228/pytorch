@@ -78,8 +78,7 @@ def dfs_recurse(
 
     discovery_callback(node, sibling_index, sibling_count)
 
-    node_children = node.get_children()
-    if node_children:
+    if node_children := node.get_children():
         for i, child in enumerate(node_children):
             child_callback(node, child)
 

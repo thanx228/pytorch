@@ -152,9 +152,9 @@ def main(save_path: Optional[Path], error_path: Optional[Path]):
     num_heads_list = [8, 16]
     betas = range(1, 64, 4)
 
+    seed = 26214  # Magic number that works well for higher b values
     for (batch_size, sequence_length, embed_dim, num_heads, block_size, b) in tqdm(
             list(itertools.product(batch_sizes, sequence_lengths, embed_dims, num_heads_list, [2], betas))):
-        seed = 26214  # Magic number that works well for higher b values
         entry = run(1, b * 0.05, iters, batch_size, sequence_length,
                     embed_dim, num_heads, "cuda", torch.float16, block_size, seed)
         if entry is None:

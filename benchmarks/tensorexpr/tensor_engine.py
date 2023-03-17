@@ -10,9 +10,7 @@ def unsupported(func):
 
 
 def is_supported(method):
-    if hasattr(method, "is_supported"):
-        return method.is_supported
-    return True
+    return method.is_supported if hasattr(method, "is_supported") else True
 
 
 def set_engine_mode(mode):
@@ -38,7 +36,7 @@ def set_engine_mode(mode):
 
         tensor_engine = nnc_engine.NncEngine()
     else:
-        raise ValueError("invalid tensor engine mode: %s" % (mode))
+        raise ValueError(f"invalid tensor engine mode: {mode}")
     tensor_engine.mode = mode
 
 

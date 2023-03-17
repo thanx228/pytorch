@@ -17,12 +17,8 @@ assert len(sys.argv) == 2
 
 full_log = open(sys.argv[1], "r").read()
 
-# If the log contains a gist URL, extract it so we can include it in the CSV
-gist_url = ""
 m = re.search(r"https://gist.github.com/[a-f0-9]+", full_log)
-if m is not None:
-    gist_url = m.group(0)
-
+gist_url = m[0] if m is not None else ""
 # Split the log into an entry per benchmark
 entries = re.split(
     r"(?:cuda (?:train|eval) +([^ ]+)|WARNING:root:([^ ]+) failed to load)", full_log
@@ -114,17 +110,17 @@ for name, name2, log in chunker(entries, 3):
 
     if m is not None:
         r = "FAIL"
-        component = f"{normalize_file(m.group(1))}:{m.group(2)}"
-        context = m.group(3)
-        explain = f"{m.group(4)}"
+        component = f"{normalize_file(m[1])}:{m[2]}"
+        context = m[3]
+        explain = f"{m[4]}"
     else:
         m = re.search(
             r'File "([^"]+)", line ([0-9]+), in .+\n +(.+)\nAssertionError', log
         )
         if m is not None:
             r = "FAIL"
-            component = f"{normalize_file(m.group(1))}:{m.group(2)}"
-            context = m.group(3)
+            component = f"{normalize_file(m[1])}:{m[2]}"
+            context = m[3]
             explain = "AssertionError"
 
     # Sometimes, the benchmark will say FAIL without any useful info
@@ -138,17 +134,17 @@ for name, name2, log in chunker(entries, 3):
     backend_time = None
     frame_time = None
     if "TIMING:" in log:
-        result = re.search("TIMING:(.*)\n", log).group(1)
+        result = re.search("TIMING:(.*)\n", log)[1]
         split_str = result.split("backend_compile:")
         if len(split_str) == 2:
             backend_time = float(split_str[1])
             frame_time = float(split_str[0].split("entire_frame_compile:")[1])
 
     if "STATS:" in log:
-        result = re.search("STATS:(.*)\n", log).group(1)
+        result = re.search("STATS:(.*)\n", log)[1]
         # call_* op count: 970 | FakeTensor.__torch_dispatch__:35285 | ProxyTorchDispatchMode.__torch_dispatch__:13339
         split_all = result.split("|")
-        # TODO: rewrite this to work with arbitrarily many stats
+            # TODO: rewrite this to work with arbitrarily many stats
 
     graph_count = None
     op_count = None
@@ -158,10 +154,10 @@ for name, name2, log in chunker(entries, 3):
         r"Dynamo produced (\d+) graphs covering (\d+) ops with (\d+) graph breaks \((\d+) unique\)",
         log,
     ):
-        graph_count = m.group(1)
-        op_count = m.group(2)
-        graph_breaks = m.group(3)
-        unique_graph_breaks = m.group(4)
+        graph_count = m[1]
+        op_count = m[2]
+        graph_breaks = m[3]
+        unique_graph_breaks = m[4]
 
     # If the context string is too long, don't put it in the CSV.
     # This is a hack to try to make it more likely that Google Sheets will

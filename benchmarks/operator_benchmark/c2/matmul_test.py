@@ -10,10 +10,10 @@ from caffe2.python import core
 mm_long_configs = op_bench.cross_product_configs(
     M=[8, 64, 128],
     N=range(2, 10, 3),
-    K=[2 ** x for x in range(0, 3)],
+    K=[2**x for x in range(3)],
     trans_a=[True, False],
     trans_b=[True, False],
-    tags=["long"]
+    tags=["long"],
 )
 
 
@@ -37,10 +37,9 @@ class MatMulBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("matmul")
 
     def forward(self):
-        op = core.CreateOperator(
+        return core.CreateOperator(
             "MatMul", [self.input_one, self.input_two], self.output, **self.args
         )
-        return op
 
 
 op_bench_c2.generate_c2_test(mm_long_configs + mm_short_configs, MatMulBenchmark)

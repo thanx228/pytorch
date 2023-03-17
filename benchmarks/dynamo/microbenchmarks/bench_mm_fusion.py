@@ -19,8 +19,7 @@ class Func(object):
     # mm
     @torch._dynamo.optimize("inductor")
     def mm(a, b, bias):
-        y = torch.mm(a, b)
-        return y
+        return torch.mm(a, b)
 
     # mm+bias
     @torch._dynamo.optimize("inductor")
@@ -106,12 +105,9 @@ p = PrettyTable()
 field_names = ["layer"]
 for fusion_type in fusion_types:
     if fusion_type == "":
-        field_names.append("torch mm")
-        field_names.append("triton mm")
+        field_names.extend(("torch mm", "triton mm"))
     else:
-        field_names.append(f"torch mm+{fusion_type}")
-        field_names.append(f"triton mm+{fusion_type}")
-
+        field_names.extend((f"torch mm+{fusion_type}", f"triton mm+{fusion_type}"))
 p.field_names = field_names
 p.float_format = ".3"
 for id, shape in enumerate(shapes):

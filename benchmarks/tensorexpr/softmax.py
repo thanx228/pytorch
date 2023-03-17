@@ -14,8 +14,7 @@ class SoftmaxBench(benchmark.Benchmark):
 
     def forward(self, inputs):
         x = self.add(inputs, 0.001)
-        y = self.softmax(x, dim=-1, dtype=self.dtype)
-        return y
+        return self.softmax(x, dim=-1, dtype=self.dtype)
 
     def reference(self):
         return scipy.special.softmax(self.numpy(self.inputs), axis=-1)

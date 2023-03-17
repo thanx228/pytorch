@@ -13,11 +13,10 @@ def to_coo_scipy(x):
 
 def sparse_grad_output(a, b):
     c = torch.sparse.mm(a, b)
-    if c.is_sparse:
-        c2 = torch.rand_like(c.to_dense())
-        return c2.sparse_mask(c.coalesce())
-    else:
+    if not c.is_sparse:
         return torch.rand_like(c)
+    c2 = torch.rand_like(c.to_dense())
+    return c2.sparse_mask(c.coalesce())
 
 
 def read_matrix_params(path):
@@ -162,7 +161,7 @@ def load_dlmc_dataset(dataset_path, operation, hidden_size, sparsity, device, re
         n_limit:
             This value allows a dataset with some limit size.
     """
-    if operation == 'sparse@sparse' or operation == "sparse@dense":
+    if operation in ['sparse@sparse', "sparse@dense"]:
         collection = load_spmm_dataset(dataset_path, hidden_size, sparsity, operation, device, n_limit)
     elif operation == 'sparse@vector':
         collection = load_spmv_dataset(dataset_path, hidden_size, sparsity, device, n_limit)

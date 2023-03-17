@@ -57,13 +57,12 @@ def model_training_evaluation(
     model.to(device)
     model.train()
     loss_history = []
-    if not backend:
-        # Run with native Pytorch
-        opt_training_iter_fn = training_iter_fn
-    else:
-        # Support backends: eager, aot_eager, aot_nvfuser and inductor
-        opt_training_iter_fn = torch._dynamo.optimize(backend)(training_iter_fn)
-    for epoch in range(num_epochs):
+    opt_training_iter_fn = (
+        torch._dynamo.optimize(backend)(training_iter_fn)
+        if backend
+        else training_iter_fn
+    )
+    for _ in range(num_epochs):
         running_loss = 0.0
         for i, batch in enumerate(train_dataloader, 0):
             batch = {k: v.to(device) for k, v in batch.items()}
@@ -73,35 +72,28 @@ def model_training_evaluation(
                 loss_history.append(running_loss / 100)
                 running_loss = 0.0
 
-    if evaluation:
-        metric = load_metric("accuracy")
-        model.eval()
-        if not backend:
-            opt_model = model
-        else:
-            opt_model = torch._dynamo.optimize(backend)(model)
-        for batch in eval_dataloader:
-            batch = {k: v.to(device) for k, v in batch.items()}
-            with torch.no_grad():
-                outputs = opt_model(**batch)
-
-            logits = outputs.logits
-            predictions = torch.argmax(logits, dim=-1)
-            metric.add_batch(predictions=predictions, references=batch["labels"])
-
-        return loss_history, metric.compute()
-    else:
+    if not evaluation:
         return loss_history, None
+    metric = load_metric("accuracy")
+    model.eval()
+    opt_model = torch._dynamo.optimize(backend)(model) if backend else model
+    for batch in eval_dataloader:
+        batch = {k: v.to(device) for k, v in batch.items()}
+        with torch.no_grad():
+            outputs = opt_model(**batch)
+
+        logits = outputs.logits
+        predictions = torch.argmax(logits, dim=-1)
+        metric.add_batch(predictions=predictions, references=batch["labels"])
+
+    return loss_history, metric.compute()
 
 
 def check_loss(ref_loss, res_loss):
     assert len(ref_loss) == len(res_loss)
     length = len(ref_loss)
     x = min(length, 10)
-    if sum(res_loss[-x:]) / 10 <= sum(ref_loss[-x:]) / 10 + 1e-1:
-        return True
-    else:
-        return False
+    return sum(res_loss[-x:]) / 10 <= sum(ref_loss[-x:]) / 10 + 1e-1
 
 
 def parse_args():
@@ -142,8 +134,7 @@ def parse_args():
         action="store_true",
         help="running evaluation after model training",
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def main():
