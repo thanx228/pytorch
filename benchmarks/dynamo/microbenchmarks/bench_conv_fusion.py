@@ -18,24 +18,20 @@ class Func(object):
     # conv
     @torch._dynamo.optimize("inductor")
     def conv_torchinductor(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, None, stride, padding, dilation, groups)
-        return y
+        return torch.conv2d(x, w, None, stride, padding, dilation, groups)
 
     # conv
-    def conv(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, None, stride, padding, dilation, groups)
-        return y
+    def conv(self, w, bias, stride, padding, dilation, groups):
+        return torch.conv2d(self, w, None, stride, padding, dilation, groups)
 
     # conv+bias
     @torch._dynamo.optimize("inductor")
     def conv_add_torchinductor(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, bias, stride, padding, dilation, groups)
-        return y
+        return torch.conv2d(x, w, bias, stride, padding, dilation, groups)
 
     # conv+bias
-    def conv_add(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, bias, stride, padding, dilation, groups)
-        return y
+    def conv_add(self, w, bias, stride, padding, dilation, groups):
+        return torch.conv2d(self, w, bias, stride, padding, dilation, groups)
 
     # relu(conv)
     @torch._dynamo.optimize("inductor")
@@ -44,8 +40,8 @@ class Func(object):
         return torch.relu(y)
 
     # relu(conv)
-    def conv_relu(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, None, stride, padding, dilation, groups)
+    def conv_relu(self, w, bias, stride, padding, dilation, groups):
+        y = torch.conv2d(self, w, None, stride, padding, dilation, groups)
         return torch.relu(y)
 
     # relu(conv+bias)
@@ -55,8 +51,8 @@ class Func(object):
         return torch.relu(y)
 
     # relu(conv+bias)
-    def conv_add_relu(x, w, bias, stride, padding, dilation, groups):
-        y = torch.conv2d(x, w, bias, stride, padding, dilation, groups)
+    def conv_add_relu(self, w, bias, stride, padding, dilation, groups):
+        y = torch.conv2d(self, w, bias, stride, padding, dilation, groups)
         return torch.relu(y)
 
     # bn(conv)
@@ -89,20 +85,8 @@ class Func(object):
         return y
 
     # bn(conv)
-    def conv_bn(
-        x,
-        w,
-        bias,
-        stride,
-        padding,
-        dilation,
-        groups,
-        running_mean,
-        running_var,
-        bn_weight,
-        bn_bias,
-    ):
-        y = torch.conv2d(x, w, None, stride, padding, dilation, groups)
+    def conv_bn(self, w, bias, stride, padding, dilation, groups, running_mean, running_var, bn_weight, bn_bias):
+        y = torch.conv2d(self, w, None, stride, padding, dilation, groups)
         y = torch.batch_norm(
             y,
             weight=bn_weight,
@@ -146,20 +130,8 @@ class Func(object):
         return torch.relu(y)
 
     # relu(bn(conv))
-    def conv_bn_relu(
-        x,
-        w,
-        bias,
-        stride,
-        padding,
-        dilation,
-        groups,
-        running_mean,
-        running_var,
-        bn_weight,
-        bn_bias,
-    ):
-        y = torch.conv2d(x, w, None, stride, padding, dilation, groups)
+    def conv_bn_relu(self, w, bias, stride, padding, dilation, groups, running_mean, running_var, bn_weight, bn_bias):
+        y = torch.conv2d(self, w, None, stride, padding, dilation, groups)
         y = torch.batch_norm(
             y,
             weight=bn_weight,
@@ -283,12 +255,9 @@ p = PrettyTable()
 field_names = ["layer"]
 for fusion_type in fusion_types:
     if fusion_type == "":
-        field_names.append("torch conv")
-        field_names.append("triton conv")
+        field_names.extend(("torch conv", "triton conv"))
     else:
-        field_names.append(f"torch conv+{fusion_type}")
-        field_names.append(f"triton conv+{fusion_type}")
-
+        field_names.extend((f"torch conv+{fusion_type}", f"triton conv+{fusion_type}"))
 p.field_names = field_names
 p.float_format = ".3"
 for id, layer in enumerate(model.resnet50_layers):

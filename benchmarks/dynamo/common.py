@@ -868,7 +868,7 @@ def read_batch_size_from_file(args, filename, model_name):
             if model_name == cur_name:
                 batch_size = int(b)
     if batch_size is None:
-        log.warning("Could not find batch size for {}".format(model_name))
+        log.warning(f"Could not find batch size for {model_name}")
     elif batch_size == -1:
         raise RuntimeError(
             f"Batch size is unset for {model_name} in {args.batch_size_file}"
@@ -920,11 +920,7 @@ def null_experiment(args, model_iter_fn, model, example_inputs):
 
 def cast_to(dtype, model, inputs):
     # cast model and inputs to fp16
-    if dtype == torch.float16:
-        model = model.half()
-    else:
-        model = model.to(dtype)
-
+    model = model.half() if dtype == torch.float16 else model.to(dtype)
     inputs = tree_map(
         lambda x: x.to(dtype)
         if isinstance(x, torch.Tensor) and x.is_floating_point()
@@ -1113,10 +1109,7 @@ class BenchmarkRunner:
 
     @property
     def equal_nan(self):
-        equal_nan = True
-        if self.args.float32:
-            equal_nan = False
-        return equal_nan
+        return not self.args.float32
 
     def iter_models(self, args):
         for model_name in self.iter_model_names(args):
@@ -1225,9 +1218,11 @@ class BenchmarkRunner:
             """
             Records the status in the csv file
             """
-            if current_name in self.non_deterministic_models:
-                if accuracy_status in ("pass", "eager_variation", "fail_accuracy"):
-                    accuracy_status = "pass"
+            if (
+                current_name in self.non_deterministic_models
+                and accuracy_status in ("pass", "eager_variation", "fail_accuracy")
+            ):
+                accuracy_status = "pass"
 
             headers = ["dev", "name", "batch_size", "accuracy"]
             fields = [current_device, current_name, current_batch_size, accuracy_status]
@@ -1480,11 +1475,13 @@ class BenchmarkRunner:
             from torch.utils._stats import simple_call_counter
 
             print_time_report()
-            stats = "STATS: "
-            stats = stats + " | ".join(
+            stats = "STATS: " + " | ".join(
                 itertools.chain(
                     [f"call_* op count: {op_count}"],
-                    (f"{key}:{value}" for key, value in simple_call_counter.items()),
+                    (
+                        f"{key}:{value}"
+                        for key, value in simple_call_counter.items()
+                    ),
                 )
             )
             print(stats)
@@ -1966,11 +1963,7 @@ def run(runner, args, original_dir=None):
             args.accuracy
         ), "DDP benchmark is currently only hooked up to --accuracy bench"
         assert args.training, "DDP benchmark requires --training mode"
-        if args.no_optimize_ddp:
-            torch._dynamo.config.optimize_ddp = False
-        else:
-            # TODO(whc) after enabling DDPOptimizer by default this could be removed or assert
-            torch._dynamo.config.optimize_ddp = True
+        torch._dynamo.config.optimize_ddp = not args.no_optimize_ddp
         if args.only == "dlrm":
             log.error(
                 "DLRM+DDP is unsupported as it requires sharding the embedding layer separately from DDP"

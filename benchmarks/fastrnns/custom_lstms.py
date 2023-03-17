@@ -153,11 +153,7 @@ class LayerNormLSTMCell(jit.ScriptModule):
         self.weight_hh = Parameter(torch.randn(4 * hidden_size, hidden_size))
         # The layernorms provide learnable biases
 
-        if decompose_layernorm:
-            ln = LayerNorm
-        else:
-            ln = nn.LayerNorm
-
+        ln = LayerNorm if decompose_layernorm else nn.LayerNorm
         self.layernorm_i = ln(4 * hidden_size)
         self.layernorm_h = ln(4 * hidden_size)
         self.layernorm_c = ln(hidden_size)
@@ -226,14 +222,11 @@ class BidirLSTMLayer(jit.ScriptModule):
         # List[LSTMState]: [forward LSTMState, backward LSTMState]
         outputs = jit.annotate(List[Tensor], [])
         output_states = jit.annotate(List[Tuple[Tensor, Tensor]], [])
-        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
-        i = 0
-        for direction in self.directions:
+        for i, direction in enumerate(self.directions):
             state = states[i]
             out, out_state = direction(input, state)
             outputs += [out]
             output_states += [out_state]
-            i += 1
         return torch.cat(outputs, -1), output_states
 
 
@@ -256,13 +249,10 @@ class StackedLSTM(jit.ScriptModule):
         # List[LSTMState]: One state per layer
         output_states = jit.annotate(List[Tuple[Tensor, Tensor]], [])
         output = input
-        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
-        i = 0
-        for rnn_layer in self.layers:
+        for i, rnn_layer in enumerate(self.layers):
             state = states[i]
             output, out_state = rnn_layer(output, state)
             output_states += [out_state]
-            i += 1
         return output, output_states
 
 
@@ -284,13 +274,10 @@ class StackedLSTM2(jit.ScriptModule):
         #                        inner list is for directions.
         output_states = jit.annotate(List[List[Tuple[Tensor, Tensor]]], [])
         output = input
-        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
-        i = 0
-        for rnn_layer in self.layers:
+        for i, rnn_layer in enumerate(self.layers):
             state = states[i]
             output, out_state = rnn_layer(output, state)
             output_states += [out_state]
-            i += 1
         return output, output_states
 
 
@@ -318,16 +305,13 @@ class StackedLSTMWithDropout(jit.ScriptModule):
         # List[LSTMState]: One state per layer
         output_states = jit.annotate(List[Tuple[Tensor, Tensor]], [])
         output = input
-        # XXX: enumerate https://github.com/pytorch/pytorch/issues/14471
-        i = 0
-        for rnn_layer in self.layers:
+        for i, rnn_layer in enumerate(self.layers):
             state = states[i]
             output, out_state = rnn_layer(output, state)
             # Apply the dropout layer except the last layer
             if i < self.num_layers - 1:
                 output = self.dropout_layer(output)
             output_states += [out_state]
-            i += 1
         return output, output_states
 
 

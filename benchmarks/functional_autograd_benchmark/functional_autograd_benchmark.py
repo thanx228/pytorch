@@ -152,18 +152,17 @@ MODELS = [
 def get_v_for(model: Callable, inp: InputsType, task: str) -> VType:
     v: VType
 
-    if task in ["vjp"]:
+    if task in {"vjp"}:
         out = model(*inp)
-        v = torch.rand_like(out)
-    elif task in ["jvp", "hvp", "vhp"]:
-        if isinstance(inp, tuple):
-            v = tuple(torch.rand_like(i) for i in inp)
-        else:
-            v = torch.rand_like(inp)
+        return torch.rand_like(out)
+    elif task in {"jvp", "hvp", "vhp"}:
+        return (
+            tuple(torch.rand_like(i) for i in inp)
+            if isinstance(inp, tuple)
+            else torch.rand_like(inp)
+        )
     else:
-        v = None
-
-    return v
+        return None
 
 def run_once(model: Callable, inp: InputsType, task: str, v: VType, **kwargs) -> None:
     func = get_task_func(task)
@@ -257,7 +256,7 @@ def main():
             runtimes = torch.tensor(runtimes)
             mean, var = runtimes.mean(), runtimes.var()
             results[name][task] = (mean.item(), var.item())
-            print("Results for model {} on task {}: {}s (var: {})".format(name, task, mean, var))
+            print(f"Results for model {name} on task {task}: {mean}s (var: {var})")
 
             if has_functorch:
                 try:
@@ -269,7 +268,9 @@ def main():
                 runtimes = torch.tensor(runtimes)
                 mean, var = runtimes.mean(), runtimes.var()
                 results[name][f"functorch {task}"] = (mean.item(), var.item())
-                print("Results for model {} on task {} using Functorch: {}s (var: {})".format(name, task, mean, var))
+                print(
+                    f"Results for model {name} on task {task} using Functorch: {mean}s (var: {var})"
+                )
 
     if args.output:
         with open(args.output, "w") as f:

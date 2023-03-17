@@ -103,9 +103,7 @@ def gru_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):
     resetgate = torch.sigmoid(i_r + h_r)
     inputgate = torch.sigmoid(i_i + h_i)
     newgate = torch.tanh(i_n + resetgate * h_n)
-    hy = newgate + inputgate * (hidden - newgate)
-
-    return hy
+    return newgate + inputgate * (hidden - newgate)
 
 
 def rnn_relu_cell(input, hidden, w_ih, w_hh, b_ih, b_hh):

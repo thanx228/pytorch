@@ -30,8 +30,7 @@ class ReplaceNaNBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("replace_nan")
 
     def forward(self):
-        op = core.CreateOperator("ReplaceNaN", self.input, self.input, value=1.0)
-        return op
+        return core.CreateOperator("ReplaceNaN", self.input, self.input, value=1.0)
 
 
 op_bench_c2.generate_c2_test(

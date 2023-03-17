@@ -18,7 +18,7 @@ dyndep.InitOpsLibrary("@/caffe2/caffe2/distributed:store_ops")
 class TestRedisStoreHandlerOp(TestCase):
     def setUp(self):
         super().setUp()
-        self.uuid = str(uuid.uuid4()) + "/"
+        self.uuid = f"{str(uuid.uuid4())}/"
 
     def create_store_handler(self):
         store_handler = "store_handler"

@@ -329,10 +329,7 @@ class GroupedBenchmark:
         if "," in output:
             raise ValueError(f"Multiple return values are not currently allowed: `{output}`")
 
-        if output == "None":
-            return args, None
-
-        return args, output
+        return (args, None) if output == "None" else (args, output)
 
     @staticmethod
     def _model_from_py_stmt(
@@ -395,8 +392,7 @@ class GroupedBenchmark:
 
         lines_by_label: Dict[str, List[str]] = {"SETUP": [], "GLOBAL_SETUP": []}
         for line in block.splitlines(keepends=False):
-            match = re.search(label_pattern, line.strip())
-            if match:
+            if match := re.search(label_pattern, line.strip()):
                 label = match.groups()[0]
                 if label.replace(" ", "_").upper() in ("SETUP", "GLOBAL_SETUP"):
                     label = label.replace(" ", "_").upper()

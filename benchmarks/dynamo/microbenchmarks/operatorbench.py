@@ -93,10 +93,9 @@ def microbenchmark(
     if accuracy_checking:
         repeats = 1
 
-    medians = compute_speedups(
+    return compute_speedups(
         operator, compiled, gm_args, repeats, accuracy_checking, device
     )
-    return medians
 
 
 def skip_operator(operator):
@@ -132,10 +131,10 @@ def skip_operator(operator):
         print(f"Skipping {operator}, no inductor impl")
         return True
 
-    if inductor_config.triton.convolution == "aten" and "convolution" in str(operator):
-        return True
-
-    return False
+    return (
+        inductor_config.triton.convolution == "aten"
+        and "convolution" in str(operator)
+    )
 
 
 @click.command()
@@ -188,11 +187,7 @@ def benchmark(
 
     dtype = torch.float16 if dtype == "float16" else torch.float32
 
-    if op == "all":
-        ops = loader.get_all_ops()
-    else:
-        ops = [eval(op)]
-
+    ops = loader.get_all_ops() if op == "all" else [eval(op)]
     max_samples = max_samples + start_idx
     for operator in ops:
         if skip_operator(operator):

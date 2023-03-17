@@ -54,7 +54,9 @@ class Conf(object):
             "rocm:" + self.gpu_version.strip("rocm") if self.gpu_version.startswith("rocm") else self.gpu_version)
         docker_distro_suffix = alt_docker_suffix if self.pydistro != "conda" else (
             "cuda" if alt_docker_suffix.startswith("cuda") else "rocm")
-        return miniutils.quote("pytorch/" + docker_distro_prefix + "-" + docker_distro_suffix)
+        return miniutils.quote(
+            f"pytorch/{docker_distro_prefix}-{docker_distro_suffix}"
+        )
 
     def get_name_prefix(self):
         return "smoke" if self.smoke else "binary"
@@ -97,22 +99,20 @@ class Conf(object):
         if phase == "test":
             if not self.smoke:
                 job_def["requires"] = [self.gen_build_name("build", nightly)]
-            if not (self.smoke and self.os == "macos") and self.os != "windows":
+            if (not self.smoke or self.os != "macos") and self.os != "windows":
                 job_def["docker_image"] = self.gen_docker_image()
 
             # fix this. only works on cuda not rocm
             if self.os != "windows" and self.gpu_version:
                 job_def["use_cuda_docker_runtime"] = miniutils.quote("1")
-        else:
-            if self.os == "linux" and phase != "upload":
-                job_def["docker_image"] = self.gen_docker_image()
+        elif self.os == "linux" and phase != "upload":
+            job_def["docker_image"] = self.gen_docker_image()
 
-        if phase == "test":
-            if self.gpu_version:
-                if self.os == "windows":
-                    job_def["executor"] = "windows-with-nvidia-gpu"
-                else:
-                    job_def["resource_class"] = "gpu.medium"
+        if phase == "test" and self.gpu_version:
+            if self.os == "windows":
+                job_def["executor"] = "windows-with-nvidia-gpu"
+            else:
+                job_def["resource_class"] = "gpu.medium"
 
         os_name = miniutils.override(self.os, {"macos": "mac"})
         job_name = "_".join([self.get_name_prefix(), os_name, phase])
@@ -176,7 +176,7 @@ def gen_build_env_list(smoke):
             c.find_prop("gpu"),
             c.find_prop("package_format"),
             [c.find_prop("pyver")],
-            c.find_prop("smoke") and not (c.find_prop("os_name") == "macos_arm64"),  # don't test arm64
+            c.find_prop("smoke") and c.find_prop("os_name") != "macos_arm64",
             c.find_prop("libtorch_variant"),
             c.find_prop("gcc_config_variant"),
             c.find_prop("libtorch_config_variant"),
@@ -186,7 +186,7 @@ def gen_build_env_list(smoke):
     return newlist
 
 def predicate_exclude_macos(config):
-    return config.os == "linux" or config.os == "windows"
+    return config.os in ["linux", "windows"]
 
 def get_nightly_uploads():
     configs = gen_build_env_list(False)
@@ -224,15 +224,13 @@ def get_nightly_tests():
 
 
 def get_jobs(toplevel_key, smoke):
-    jobs_list = []
     configs = gen_build_env_list(smoke)
     phase = "build" if toplevel_key == "binarybuilds" else "test"
-    for build_config in configs:
-        # don't test for macos_arm64 as it's cross compiled
-        if phase != "test" or build_config.os != "macos_arm64":
-            jobs_list.append(build_config.gen_workflow_job(phase, nightly=True))
-
-    return jobs_list
+    return [
+        build_config.gen_workflow_job(phase, nightly=True)
+        for build_config in configs
+        if phase != "test" or build_config.os != "macos_arm64"
+    ]
 
 
 def get_binary_build_jobs():

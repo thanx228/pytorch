@@ -72,11 +72,10 @@ class CoordinatorBase:
             n_steps = episode_steps
             agent_start_time = time.time()
 
-            futs = []
-            for ob_rref in self.ob_rrefs:
-                futs.append(ob_rref.rpc_async().run_ob_episode(
-                    self.agent_rref, n_steps))
-
+            futs = [
+                ob_rref.rpc_async().run_ob_episode(self.agent_rref, n_steps)
+                for ob_rref in self.ob_rrefs
+            ]
             rets = torch.futures.wait_all(futs)
             agent_latency, agent_throughput = self.agent_rref.rpc_sync().finish_episode(rets)
 
@@ -107,7 +106,7 @@ class CoordinatorBase:
         agent_latency_final = sorted(agent_latency_final)
         for p in [50, 75, 90, 95]:
             v = np.percentile(agent_latency_final, p)
-            print("p" + str(p) + ":", round(v, 3))
+            print(f"p{str(p)}:", round(v, 3))
             p = f'p{p}'
             benchmark_metrics['agent latency (seconds)'][p] = round(v, 3)
 
@@ -115,7 +114,7 @@ class CoordinatorBase:
         agent_throughput_final = sorted(agent_throughput_final)
         for p in [50, 75, 90, 95]:
             v = np.percentile(agent_throughput_final, p)
-            print("p" + str(p) + ":", int(v))
+            print(f"p{str(p)}:", int(v))
             p = f'p{p}'
             benchmark_metrics['agent throughput'][p] = int(v)
 
@@ -123,7 +122,7 @@ class CoordinatorBase:
         observer_latency_final = sorted(observer_latency_final)
         for p in [50, 75, 90, 95]:
             v = np.percentile(observer_latency_final, p)
-            print("p" + str(p) + ":", round(v, 3))
+            print(f"p{str(p)}:", round(v, 3))
             p = f'p{p}'
             benchmark_metrics['observer latency (seconds)'][p] = round(v, 3)
 
@@ -131,7 +130,7 @@ class CoordinatorBase:
         observer_throughput_final = sorted(observer_throughput_final)
         for p in [50, 75, 90, 95]:
             v = np.percentile(observer_throughput_final, p)
-            print("p" + str(p) + ":", int(v))
+            print(f"p{str(p)}:", int(v))
             p = f'p{p}'
             benchmark_metrics['observer throughput'][p] = int(v)
 

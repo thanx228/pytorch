@@ -13,14 +13,13 @@ def collate_sentences_lm(samples):
     ntokens = len(samples) * len(samples[0]["target"])
     src_lengths = torch.LongTensor([len(samples[0]["source"])] * len(samples))
 
-    batch = {
+    return {
         "id": id,
         "nsentences": len(samples),
         "ntokens": ntokens,
         "input": src_tokens,
         "target": tgt_tokens,
     }
-    return batch
 
 
 class BenchmarkLMDataset(Dataset):

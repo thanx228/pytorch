@@ -56,14 +56,14 @@ def get_last_page_num_from_header(header: Any) -> int:
 @lru_cache()
 def gh_get_labels(org: str, repo: str) -> List[str]:
     prefix = f"https://api.github.com/repos/{org}/{repo}/labels?per_page=100"
-    header, info = request_for_labels(prefix + "&page=1")
+    header, info = request_for_labels(f"{prefix}&page=1")
     labels: List[str] = []
     update_labels(labels, info)
 
     last_page = get_last_page_num_from_header(header)
     assert last_page > 0, "Error reading header info to determine total number of pages of labels"
     for page_number in range(2, last_page + 1):  # skip page 1
-        _, info = request_for_labels(prefix + f"&page={page_number}")
+        _, info = request_for_labels(f"{prefix}&page={page_number}")
         update_labels(labels, info)
 
     return labels

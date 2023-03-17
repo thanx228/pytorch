@@ -18,7 +18,7 @@ with extension_loader.DlopenGuard():
         if num_cuda_devices():  # noqa
             has_gpu_support = has_cuda_support = True
     except ImportError as gpu_e:
-        logging.info('Failed to import cuda module: {}'.format(gpu_e))
+        logging.info(f'Failed to import cuda module: {gpu_e}')
         try:
             from caffe2.python.caffe2_pybind11_state_hip import *  # noqa
             # we stop checking whether we have AMD GPU devices on the host,
@@ -27,12 +27,11 @@ with extension_loader.DlopenGuard():
             has_gpu_support = has_hip_support = True
             logging.info('This caffe2 python run has AMD GPU support!')
         except ImportError as hip_e:
-            logging.info('Failed to import AMD hip module: {}'.format(hip_e))
+            logging.info(f'Failed to import AMD hip module: {hip_e}')
 
             logging.warning(
-                'This caffe2 python run failed to load cuda module:{},'
-                'and AMD hip module:{}.'
-                'Will run in CPU only mode.'.format(gpu_e, hip_e))
+                f'This caffe2 python run failed to load cuda module:{gpu_e},and AMD hip module:{hip_e}.Will run in CPU only mode.'
+            )
             try:
                 from caffe2.python.caffe2_pybind11_state import *  # noqa
             except ImportError as cpu_e:

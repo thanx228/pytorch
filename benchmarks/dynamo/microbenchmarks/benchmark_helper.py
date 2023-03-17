@@ -8,6 +8,4 @@ def time_with_torch_timer(fn, args, kwargs=None, iters=100):
 
     # Measure end-to-end time
     timer = Timer(stmt=f"{fn_call}", globals=env)
-    tt = timer.timeit(iters)
-
-    return tt
+    return timer.timeit(iters)

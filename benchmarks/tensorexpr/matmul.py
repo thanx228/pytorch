@@ -14,8 +14,7 @@ class MatMulBench(benchmark.Benchmark):
         self.inputs = [self.d1, self.d2]
 
     def forward(self, d1, d2):
-        y = self.matmul(d1, d2)
-        return y
+        return self.matmul(d1, d2)
 
     def reference(self):
         return np.matmul(self.numpy(self.d1), self.numpy(self.d2))
@@ -46,11 +45,7 @@ class MatMulBench(benchmark.Benchmark):
         }
 
     def compute_workload(self):
-        if self.mode == "fwd":
-            count = 1
-        else:
-            count = 1 + (1 + 1)
-
+        count = 1 if self.mode == "fwd" else 1 + (1 + 1)
         op_count = 2 * self.B * self.M * self.N * self.K
 
         return op_count * count

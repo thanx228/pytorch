@@ -21,16 +21,20 @@ class IOSNightlyJob:
 
         extra_name = ["full_jit"] if self.is_full_jit else []
 
-        common_name_pieces = [
-            "ios",
-        ] + extra_name + [
-        ] + ios_definitions.XCODE_VERSION.render_dots_or_parts(sep) + [
-            "nightly",
-            self.variant,
-            "build",
-        ] + extra_name_suffix
-
-        return common_name_pieces
+        return (
+            [
+                "ios",
+            ]
+            + extra_name
+            + []
+            + ios_definitions.XCODE_VERSION.render_dots_or_parts(sep)
+            + [
+                "nightly",
+                self.variant,
+                "build",
+            ]
+            + extra_name_suffix
+        )
 
     def gen_job_name(self):
         return "_".join(["pytorch"] + self.get_common_name_pieces(None))

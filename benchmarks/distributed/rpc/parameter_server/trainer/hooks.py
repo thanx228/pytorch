@@ -84,15 +84,14 @@ def sparse_rpc_hook(state, bucket):
     tensor = bucket.buffer()
     if tensor.is_sparse:
         return process_bucket_with_remote_server(state, bucket)
-    else:
-        cref = state.cref
-        tensor = [tensor / state.process_group.size()]
-        key = state.get_key(bucket.get_index())
-        cref.record_start("hook_future_metric", key, f"{cref.backend}_dense_allreduce")
-        fut = state.process_group.allreduce(tensor).get_future()
+    cref = state.cref
+    tensor = [tensor / state.process_group.size()]
+    key = state.get_key(bucket.get_index())
+    cref.record_start("hook_future_metric", key, f"{cref.backend}_dense_allreduce")
+    fut = state.process_group.allreduce(tensor).get_future()
 
-        def callback(fut):
-            cref.record_end("hook_future_metric", key)
-            return fut.wait()
+    def callback(fut):
+        cref.record_end("hook_future_metric", key)
+        return fut.wait()
 
-        return fut.then(callback)
+    return fut.then(callback)

@@ -38,8 +38,9 @@ class ClipRangesBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("clip_ranges")
 
     def forward(self):
-        op = core.CreateOperator("ClipRanges", self.input, self.input, max_length=self.max_length)
-        return op
+        return core.CreateOperator(
+            "ClipRanges", self.input, self.input, max_length=self.max_length
+        )
 
 
 op_bench_c2.generate_c2_test(

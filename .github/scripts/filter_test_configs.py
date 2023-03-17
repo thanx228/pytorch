@@ -250,20 +250,16 @@ def remove_disabled_jobs(
             )
             return filtered_test_matrix
 
-        if (
-            disabled_job_cfg == TEST_JOB_NAME
-            or disabled_job_cfg == BUILD_AND_TEST_JOB_NAME
-        ):
+        if disabled_job_cfg in [TEST_JOB_NAME, BUILD_AND_TEST_JOB_NAME]:
             print(
                 f"Issue {disabled_url} created by {author} has disabled all the test jobs for {workflow} / {job_name}"
             )
             return filtered_test_matrix
 
-        m = JOB_NAME_CFG_REGEX.match(disabled_job_cfg)
-        if m:
+        if m := JOB_NAME_CFG_REGEX.match(disabled_job_cfg):
             disabled_job = m.group("job")
             # Make sure that the job name is a valid test job name first before checking the config
-            if disabled_job == TEST_JOB_NAME or disabled_job == BUILD_AND_TEST_JOB_NAME:
+            if disabled_job in [TEST_JOB_NAME, BUILD_AND_TEST_JOB_NAME]:
                 disabled_cfg = m.group("cfg")
                 # Remove the disabled config from the test matrix
                 filtered_test_matrix["include"] = [
@@ -331,10 +327,8 @@ def main() -> None:
         filtered_test_matrix = filter(test_matrix, labels)
 
     elif tag:
-        m = tag_regex.match(tag)
-
-        if m:
-            pr_number = m.group("pr_number")
+        if m := tag_regex.match(tag):
+            pr_number = m["pr_number"]
 
             # The PR number can also come from the tag in ciflow tag event
             labels = get_labels(int(pr_number))

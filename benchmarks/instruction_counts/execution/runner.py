@@ -166,7 +166,7 @@ class Runner:
 
     def _enqueue_new_jobs(self) -> None:
         work_queue: List[WorkOrder] = []
-        for i, work_order in enumerate(self._work_queue):
+        for work_order in self._work_queue:
             self._currently_processed = work_order
             cpu_list = self._core_pool.reserve(work_order.timer_args.num_threads)
 
@@ -213,8 +213,9 @@ class Runner:
         if self._active_jobs:
             time.sleep(0.5)
 
-        remaining_jobs = [j for j in self._active_jobs if j.proc.poll() is None]
-        if remaining_jobs:
+        if remaining_jobs := [
+            j for j in self._active_jobs if j.proc.poll() is None
+        ]:
             print(
                 f'SIGINT sent to {len(self._active_jobs)} jobs, '
                 f'{len(remaining_jobs)} have not yet exited.\n'
@@ -237,11 +238,11 @@ class Runner:
 
     def _canary_import(self) -> None:
         """Make sure we can import torch before launching a slew of workers."""
-        source_cmds: Set[str] = set()
-        for w in self._work_items:
-            if w.source_cmd is not None:
-                source_cmds.add(f"{w.source_cmd} && ")
-
+        source_cmds: Set[str] = {
+            f"{w.source_cmd} && "
+            for w in self._work_items
+            if w.source_cmd is not None
+        }
         for source_cmd in (source_cmds or {""}):
             cmd = f'{source_cmd}{PYTHON_CMD} -c "import torch"'
             proc = subprocess.run(

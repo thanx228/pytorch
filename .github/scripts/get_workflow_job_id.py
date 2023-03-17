@@ -99,7 +99,7 @@ def find_job_id(args: Any) -> str:
     GITHUB_TOKEN = os.environ["GITHUB_TOKEN"]
     REQUEST_HEADERS = {
         "Accept": "application/vnd.github.v3+json",
-        "Authorization": "token " + GITHUB_TOKEN,
+        "Authorization": f"token {GITHUB_TOKEN}",
     }
 
     url = f"{PYTORCH_GITHUB_API}/actions/runs/{args.workflow_run_id}/jobs?per_page=100"

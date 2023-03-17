@@ -1,4 +1,5 @@
 """Handle the details of subprocess calls and retries for a given benchmark run."""
+
 import dataclasses
 import json
 import os
@@ -14,12 +15,7 @@ from core.types import Label
 from core.utils import get_temp_dir
 from worker.main import WORKER_PATH, WorkerFailure, WorkerOutput, WorkerTimerArgs, WorkerUnpickler
 
-if TYPE_CHECKING:
-    PopenType = subprocess.Popen[bytes]
-else:
-    PopenType = subprocess.Popen
-
-
+PopenType = subprocess.Popen[bytes] if TYPE_CHECKING else subprocess.Popen
 # Mitigate https://github.com/pytorch/pytorch/issues/37377
 _ENV = "MKL_THREADING_LAYER=GNU"
 _PYTHON = "python"

@@ -82,9 +82,11 @@ class Fusions(serial.SerializedTestCase):
         workspace.RunNet(ref_net.name)
         Y_ref = workspace.FetchInt8Blob("Y_q")
 
-        if not np.array_equal(Y_ref.data, Y_glow.data) or \
-           not Y_ref.scale == Y_glow.scale or \
-           not Y_ref.zero_point == Y_glow.zero_point:
+        if (
+            not np.array_equal(Y_ref.data, Y_glow.data)
+            or Y_ref.scale != Y_glow.scale
+            or Y_ref.zero_point != Y_glow.zero_point
+        ):
             print_test_debug_info(
                 "tanhfusion",
                 {

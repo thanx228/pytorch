@@ -32,10 +32,12 @@ class QuantileOpBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("quantile_op")
 
     def forward(self):
-        op = core.CreateOperator(
-            "Quantile", inputs=self.data, outputs=self.output, quantile=self.quantile
+        return core.CreateOperator(
+            "Quantile",
+            inputs=self.data,
+            outputs=self.output,
+            quantile=self.quantile,
         )
-        return op
 
 
 op_bench_c2.generate_c2_test(

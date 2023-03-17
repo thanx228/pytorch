@@ -145,9 +145,7 @@ FLAG_FNS = {
 
 
 def percentage(part, whole, decimals=2):
-    if whole == 0:
-        return 0
-    return round(100 * float(part) / float(whole), decimals)
+    return 0 if whole == 0 else round(100 * float(part) / float(whole), decimals)
 
 
 def parse_args():
@@ -316,14 +314,11 @@ def parse_args():
         help="Provide the args of torch.backends.xeon.run_cpu. "
         "To look up what optional arguments this launcher offers: python -m torch.backends.xeon.run_cpu --help",
     )
-    args = parser.parse_args()
-    return args
+    return parser.parse_args()
 
 
 def get_mode(args):
-    if args.inference:
-        return "inference"
-    return "training"
+    return "inference" if args.inference else "training"
 
 
 def get_skip_tests(suite):
@@ -341,8 +336,7 @@ def get_skip_tests(suite):
         skip_tests.update(module.SKIP_TRAIN)
 
     skip_tests = map(lambda name: f"-x {name}", skip_tests)
-    skip_str = " ".join(skip_tests)
-    return skip_str
+    return " ".join(skip_tests)
 
 
 def generate_csv_name(args, dtype, suite, device, compiler, testing):
@@ -356,21 +350,13 @@ def generate_commands(args, dtypes, suites, devices, compilers, output_dir):
     devices_str = "_".join(devices)
     dtypes_str = "_".join(dtypes)
     compilers_str = "_".join(compilers)
-    generated_file = "run_{}_{}_{}_{}_{}.sh".format(
-        mode, devices_str, dtypes_str, suites_str, compilers_str
-    )
+    generated_file = f"run_{mode}_{devices_str}_{dtypes_str}_{suites_str}_{compilers_str}.sh"
     with open(generated_file, "w") as runfile:
-        lines = []
+        lines = ["#!/bin/bash", "set -x", "# Setup the output directory"]
 
-        lines.append("#!/bin/bash")
-        lines.append("set -x")
-        lines.append("# Setup the output directory")
         if not args.keep_output_dir:
             lines.append(f"rm -rf {output_dir}")
-        # It's ok if the output directory already exists
-        lines.append(f"mkdir -p {output_dir}")
-        lines.append("")
-
+        lines.extend((f"mkdir -p {output_dir}", ""))
         for testing in ["performance", "accuracy"]:
             for iter in itertools.product(suites, devices, dtypes):
                 suite, device, dtype = iter
@@ -452,7 +438,7 @@ def build_summary(args):
         if name in os.environ:
             out_io.write(f"{name} = {os.environ[name]}\n")
         else:
-            out_io.write(f"{name} = {None}\n")
+            out_io.write(f"{name} = None\n")
 
     out_io.write("\n")
     out_io.write("### Run name ###\n")
@@ -501,15 +487,9 @@ def build_summary(args):
 def archive_data(archive_name):
     if archive_name is not None:
         prefix_match = re.search(r"\w+(?=_performance)", archive_name)
-        if prefix_match is not None:
-            prefix = prefix_match.group(0)
-        else:
-            prefix = ""
+        prefix = prefix_match[0] if prefix_match is not None else ""
         day_match = re.search(r"day_(\d+)_", archive_name)
-        if day_match is not None:
-            day = day_match.group(1)
-        else:
-            day = "000"
+        day = day_match[1] if day_match is not None else "000"
     else:
         now = datetime.now(tz=timezone(timedelta(hours=-8)))
         day = now.strftime("%j")
@@ -712,16 +692,11 @@ class ParsePerformanceLogs(Parser):
     def comp_time(self, compiler, df):
         df = self.get_passing_entries(compiler, df)
         # df = df.sort_values(by=compiler, ascending=False)[compiler][: self.bottom_k]
-        if df.empty:
-            return "0.0"
-
-        return f"{df.mean():.2f}"
+        return "0.0" if df.empty else f"{df.mean():.2f}"
 
     def geomean(self, compiler, df):
         cleaned_df = self.get_passing_entries(compiler, df).clip(1)
-        if cleaned_df.empty:
-            return "0.0x"
-        return f"{gmean(cleaned_df):.2f}x"
+        return "0.0x" if cleaned_df.empty else f"{gmean(cleaned_df):.2f}x"
 
     def passrate(self, compiler, df):
         total = len(df.index)
@@ -733,16 +708,13 @@ class ParsePerformanceLogs(Parser):
         df = self.get_passing_entries(compiler, df)
         df = df.fillna(0)
         df = df[df > 0]
-        if df.empty:
-            return "0.0x"
-        return f"{df.mean():.2f}x"
+        return "0.0x" if df.empty else f"{df.mean():.2f}x"
 
     def exec_summary_df(self, fn, metric):
         """
         Generate a table with passrate and geomean perf
         """
-        cols = {}
-        cols["Compiler"] = self.compilers
+        cols = {"Compiler": self.compilers}
         for suite in self.suites:
             df = self.parsed_frames[suite][metric]
             # speedups = [self.geomean(compiler, df) for compiler in self.compilers]
@@ -855,9 +827,10 @@ class ParsePerformanceLogs(Parser):
             "compilation_latency",
             "compression_ratio",
         ]:
-            dfs = []
-            for suite in self.suites:
-                dfs.append(self.flag_bad_entries(suite, metric, FLAG_FNS[metric]))
+            dfs = [
+                self.flag_bad_entries(suite, metric, FLAG_FNS[metric])
+                for suite in self.suites
+            ]
             df = pd.concat(dfs, axis=0)
             if df.empty:
                 continue
@@ -870,8 +843,7 @@ class ParsePerformanceLogs(Parser):
             str_io.write("~~~\n")
             body += str_io.getvalue()
 
-        comment = generate_dropdown_comment(title, body)
-        return comment
+        return generate_dropdown_comment(title, body)
 
     def prepare_message(self, suite):
         title = f"## {suite} suite with {self.dtypes[0]} precision ##"
@@ -895,8 +867,7 @@ class ParsePerformanceLogs(Parser):
             str_io.write("~~~\n")
             body += str_io.getvalue()
 
-        comment = generate_dropdown_comment(title, body)
-        return comment
+        return generate_dropdown_comment(title, body)
 
     def gen_summary_files(self):
         self.generate_executive_summary()
@@ -964,7 +935,7 @@ def find_last_2_with_filenames(lookup_file, dashboard_archive_path, dtype, filen
         fullpaths = [
             os.path.join(dashboard_archive_path, path, name) for name in filenames
         ]
-        if all([os.path.exists(fullpath) for fullpath in fullpaths]):
+        if all(os.path.exists(fullpath) for fullpath in fullpaths):
             last2.append(output_dir)
         if len(last2) >= 2:
             return last2
@@ -1171,10 +1142,7 @@ class RegressionTracker:
         df = pd.read_csv(self.lookup_file, names=("day", "mode", "prec", "path"))
         df = df[df["mode"] == "performance"]
         df = df[df["prec"] == dtype]
-        log_infos = []
-        for day, path in zip(df["day"], df["path"]):
-            log_infos.append(LogInfo(day, path))
-
+        log_infos = [LogInfo(day, path) for day, path in zip(df["day"], df["path"])]
         assert len(log_infos) >= self.k
         log_infos = log_infos[len(log_infos) - self.k :]
         return log_infos
@@ -1213,7 +1181,7 @@ class RegressionTracker:
                     df = pd.read_csv(gmean_filename)
                     if suite not in df:
                         continue
-                    if metric == "geomean" or metric == "memory":
+                    if metric in ["geomean", "memory"]:
                         df[suite] = df[suite].str.replace("x", "").astype(float)
                     elif metric == "passrate":
                         df[suite] = df[suite].str.split("%").str[0].astype(float)
@@ -1334,10 +1302,7 @@ class DashboardUpdater:
             f.write(comment)
             filename = f.name
 
-        issue_number = "93794"
-        if self.args.dtypes[0] == "float32":
-            issue_number = "93518"
-
+        issue_number = "93518" if self.args.dtypes[0] == "float32" else "93794"
         subprocess.check_call(
             [
                 self.args.dashboard_gh_cli_path,

@@ -43,10 +43,9 @@ class NormalizationBench(benchmark.Benchmark):
 
 class BatchNormBench(NormalizationBench):
     def forward(self):
-        y = self.batch_norm(
+        return self.batch_norm(
             self.data, self.running_mean, self.running_var, training=self.training
         )
-        return y
 
     @staticmethod
     def module():
@@ -55,8 +54,7 @@ class BatchNormBench(NormalizationBench):
 
 class InstanceNormBench(NormalizationBench):
     def forward(self):
-        y = self.instance_norm(self.data)
-        return y
+        return self.instance_norm(self.data)
 
     @staticmethod
     def module():
@@ -68,8 +66,7 @@ class InstanceNormBench(NormalizationBench):
 
 class LayerNormBench(NormalizationBench):
     def forward(self):
-        y = self.layer_norm(self.data, [self.H, self.W])
-        return y
+        return self.layer_norm(self.data, [self.H, self.W])
 
     @staticmethod
     def module():

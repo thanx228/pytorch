@@ -34,13 +34,9 @@ args, _ = parser.parse_known_args()
 
 if args.aten_root:
     if not os.path.exists(args.aten_root):
-        raise ValueError('aten_root ({}) does not exist'.format(
-            args.aten_root))
+        raise ValueError(f'aten_root ({args.aten_root}) does not exist')
     sys.path.insert(0, os.path.join(args.aten_root, '..'))
-    from torchgen.code_template import CodeTemplate as CT
-else:
-    from torchgen.code_template import CodeTemplate as CT
-
+from torchgen.code_template import CodeTemplate as CT
 OP_TEMPLATE = CT.from_file(
     os.path.join(args.template_dir, 'aten_op_template.h'))
 
@@ -108,7 +104,7 @@ SPECIAL_IMPLEMENTATIONS = {
 def expand(o):
     num_defaults = sum(1 if 'default' in arg else 0 for arg in o['arguments'])
     results = [o]
-    for i in range(0, num_defaults):
+    for i in range(num_defaults):
         # last num_default values should be default
         assert('default' in o['arguments'][-(i + 1)])
         v = deepcopy(o)
@@ -122,7 +118,7 @@ def supports(o, factory_methods):
     # Ignore all families (!) of functions that have TensorOptions (i.e. tensor factory methods).
     if o['name'] in factory_methods:
         if factory_methods[o['name']] == 0:
-            print("Skipping {} because it is a factory method".format(o['name']))
+            print(f"Skipping {o['name']} because it is a factory method")
         factory_methods[o['name']] += 1
         return False
 
@@ -143,15 +139,17 @@ def supports(o, factory_methods):
     # skip return types we cannot handle
     for ret in o['returns']:
         if not value_has_tensors(ret) and ret['type'] not in RETURN_MAP:
-            print("Skipping {} Because of Ret: {} ({})".format(
-                  o['name'], ret['type'], ret['dynamic_type']))
+            print(
+                f"Skipping {o['name']} Because of Ret: {ret['type']} ({ret['dynamic_type']})"
+            )
             return False
 
     # skip arguments we cannot handle
     for arg in o['arguments']:
         if not value_has_tensors(arg) and arg['type'] not in ARGUMENT_MAP:
-            print("Skipping {} Because of Arg: {} ({}) ".format(
-                  o['name'], arg['type'], arg['dynamic_type']))
+            print(
+                f"Skipping {o['name']} Because of Arg: {arg['type']} ({arg['dynamic_type']}) "
+            )
             return False
     return True
 
@@ -194,7 +192,7 @@ def get_output(o, i):
     if len(o['returns']) == 1:
         return 'the_result'
     else:
-        return '::std::get<{}>(the_result)'.format(i)
+        return f'::std::get<{i}>(the_result)'
 
 
 def attribute_names(o):
@@ -221,16 +219,19 @@ def get_num_inputs(o):
 
 
 def find_factory_methods(decls):
-    factory_methods = {}
-    for o in decls:
-        if any(arg['dynamic_type'] == 'at::TensorOptions' for arg in o['arguments']):
-            factory_methods[o['name']] = 0
-    return factory_methods
+    return {
+        o['name']: 0
+        for o in decls
+        if any(
+            arg['dynamic_type'] == 'at::TensorOptions'
+            for arg in o['arguments']
+        )
+    }
 
 
 def emit_assignments(o, env):
     for i, r in enumerate(o['returns']):
-        t = RETURN_MAP[r['type'] if not value_is_tensor_type(r) else 'at::Tensor']
+        t = RETURN_MAP['at::Tensor' if value_is_tensor_type(r) else r['type']]
         assignment = CT(t).substitute(env, offset=i, output=get_output(o, i))
         check_size_assignment = ASSIGN_CHECK_SIZE_TEMPLATE.substitute(env, offset=i, assignment=assignment)
 
@@ -292,22 +293,23 @@ if __name__ == '__main__':
             env['arguments'].append(arg['name'])
             # Pretend the flat argument list is a stack where the end is the top.
             view_length = 'InputSize()' if has_tensorlist and i < tensorlist_idx else static_tensor_inputs
-            if arg['type'] == 'at::TensorList' or arg['type'] == 'const at::ITensorListRef &':
+            if arg['type'] in ['at::TensorList', 'const at::ITensorListRef &']:
                 # NOTE: do not advance real_inputs here. After this we will
                 # switch to indexing the "stack" from the end
                 env['statements'].append(
-                    'auto {} = peekSlice({}, InputSize() - {}, InputSize());'
-                    .format(arg['name'], real_inputs, static_tensor_inputs))
+                    f"auto {arg['name']} = peekSlice({real_inputs}, InputSize() - {static_tensor_inputs}, InputSize());"
+                )
             elif arg['type'] == 'const c10::List<c10::optional<at::Tensor>> &':
                 # NOTE: do not advance real_inputs here. After this we will
                 # switch to indexing the "stack" from the end
                 env['statements'].append(
-                    'auto {} = peekSliceOptionals({}, InputSize() - {}, InputSize());'
-                    .format(arg['name'], real_inputs, static_tensor_inputs))
+                    f"auto {arg['name']} = peekSliceOptionals({real_inputs}, InputSize() - {static_tensor_inputs}, InputSize());"
+                )
             elif value_is_tensor_type(arg):
                 # load tensor inputs from Caffe2
                 env['statements'].append(
-                    'auto {} = peek({}, {});'.format(arg['name'], real_inputs, view_length))
+                    f"auto {arg['name']} = peek({real_inputs}, {view_length});"
+                )
                 real_inputs += 1
             else:
                 init = CT(ARGUMENT_MAP[arg['type']]).substitute(env, arg=arg['name'])
@@ -316,15 +318,19 @@ if __name__ == '__main__':
         emit_assignments(o, env)
 
         if o['name'] in SPECIAL_IMPLEMENTATIONS:
-            env['invocation'] = "{}({})".format(SPECIAL_IMPLEMENTATIONS[o['name']], ','.join(env['arguments']))
+            env[
+                'invocation'
+            ] = f"{SPECIAL_IMPLEMENTATIONS[o['name']]}({','.join(env['arguments'])})"
         elif 'namespace' in o['method_of']:
             env['invocation'] = CT("at::${name}(${arguments})").substitute(env)
         else:
             assert('Tensor' in o['method_of'])
-            env['invocation'] = "self.{}({})".format(
-                o['name'], ', '.join(env['arguments'][1:]))
+            env['invocation'] = f"self.{o['name']}({', '.join(env['arguments'][1:])})"
 
         top_env['implementations'].append(IMPLEMENTATION_TEMPLATE.substitute(env))
         top_env['cases'].append(CASE_TEMPLATE.substitute(env))
         key += 1
-    write(os.path.join(args.install_dir, args.output_prefix + "aten_op.h"), OP_TEMPLATE.substitute(top_env))
+    write(
+        os.path.join(args.install_dir, f"{args.output_prefix}aten_op.h"),
+        OP_TEMPLATE.substitute(top_env),
+    )

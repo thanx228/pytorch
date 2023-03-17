@@ -52,4 +52,4 @@ if args.format in ['table', 'md', 'csv']:
 elif args.format == 'json':
     print(json.dumps(results))
 else:
-    raise ValueError('Unknown output format: ' + args.format)
+    raise ValueError(f'Unknown output format: {args.format}')

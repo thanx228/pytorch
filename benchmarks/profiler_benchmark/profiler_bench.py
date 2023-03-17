@@ -8,7 +8,7 @@ from torch.utils.benchmark import Timer
 PARALLEL_TASKS_NUM = 4
 INTERNAL_ITER = None
 def loop_workload(x):
-    for i in range(INTERNAL_ITER):
+    for _ in range(INTERNAL_ITER):
         x = torch.mm(x, x)
     return x
 

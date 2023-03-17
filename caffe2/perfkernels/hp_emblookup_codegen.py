@@ -59,7 +59,7 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
         return code
 
     code = []
-    code.append("    // unrolling " + str(uf) + " times")
+    code.append(f"    // unrolling {str(uf)} times")
 
     if use_offsets:
         code.append(
@@ -74,10 +74,10 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
             + " rangeIndex = 0; rangeIndex < output_size; ++rangeIndex) {"
         )
 
-    code.append("      " + OutType + "* op = &out[rangeIndex * block_size];")
-    for i in range(0, uf):
+    code.append(f"      {OutType}* op = &out[rangeIndex * block_size];")
+    for i in range(uf):
         j = 8 * i
-        code.append("      __m256 vop" + str(j) + " = _mm256_setzero_ps();")
+        code.append(f"      __m256 vop{str(j)} = _mm256_setzero_ps();")
 
     # inner loop
     if use_offsets:
@@ -105,7 +105,7 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
             + IndexType
             + " start = dataInd; dataInd < start + lengths[rangeIndex];\n           ++dataInd) {"  # noqa
         )
-    code.append("        const " + IndexType + " idx = indices[dataInd];")
+    code.append(f"        const {IndexType} idx = indices[dataInd];")
     code.append(
         "        if (idx < 0 || idx >= data_size) {\n"
         + "          return false;\n"
@@ -113,9 +113,9 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
     )
 
     if InType == "uint8_t":
-        code.append("        " + OutType + " wgt = 1.f;")
+        code.append(f"        {OutType} wgt = 1.f;")
         code.append("        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)")
-        code.append("        " + OutType + " bio;")
+        code.append(f"        {OutType} bio;")
         code.append("        if (weights) {")
         code.append(
             "          wgt = weights[IS_WEIGHT_POSITIONAL ? (dataInd - start) : dataInd];"  # noqa
@@ -133,7 +133,7 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
             code.append("        wgt = wgt * scale_bias[2 * idx];")
         code.append("        __m256 vbio = _mm256_set1_ps(bio);")
     else:
-        code.append("        " + OutType + " wgt = 1.f;")
+        code.append(f"        {OutType} wgt = 1.f;")
         code.append("        if (weights) {")
         code.append(
             "          wgt = weights[IS_WEIGHT_POSITIONAL ? (dataInd - start) : dataInd];"  # noqa
@@ -151,7 +151,7 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
             IndexType
         )
     )
-    code.append("        const " + IndexType + " idx_pref_T0 = indices[next_T0];")
+    code.append(f"        const {IndexType} idx_pref_T0 = indices[next_T0];")
     code.append(
         "        if (idx_pref_T0 < 0 || idx_pref_T0 >= data_size) {\n"
         + "          return false;\n"
@@ -163,7 +163,7 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
         "&input[idx_pref_T0 * fused_block_size];".format(InType)
     )
 
-    for i in range(0, uf):
+    for i in range(uf):
         j = 8 * i
         cachelinesize = 64
         byteoffset = sizeof[InType] * j
@@ -175,16 +175,16 @@ def unroll(uf, IndexType, InType, OutType, use_weights, isa, fused, use_offsets)
         code.append("      if (!normalize_by_lengths || length == 0) {")
     else:
         code.append("      if (!normalize_by_lengths || lengths[rangeIndex] == 0) {")
-    for i in range(0, uf):
+    for i in range(uf):
         j = 8 * i
-        code.append("        _mm256_storeu_ps(&op[" + str(j) + "], vop" + str(j) + ");")
+        code.append(f"        _mm256_storeu_ps(&op[{str(j)}], vop{str(j)});")
     code.append("      } else {")
     # inv of length
     if use_offsets:
         code.append("        __m256 vlen_inv = _mm256_set1_ps(1.0f / length);")
     else:
         code.append("        __m256 vlen_inv = _mm256_set1_ps(1.0f / lengths[rangeIndex]);")
-    for i in range(0, uf):
+    for i in range(uf):
         j = 8 * i
         code.append(
             "        _mm256_storeu_ps(&op["
@@ -272,7 +272,7 @@ def generic(IndexType, InType, OutType, use_weights, isa, fused, use_offsets):
             + " rangeIndex = 0; rangeIndex < output_size; ++rangeIndex) {"
         )
 
-    code.append("      " + OutType + "* op = &out[rangeIndex * block_size];")
+    code.append(f"      {OutType}* op = &out[rangeIndex * block_size];")
 
     # initialize to 0
     code.append("      int64_t j = 0;")
@@ -309,7 +309,7 @@ def generic(IndexType, InType, OutType, use_weights, isa, fused, use_offsets):
             + IndexType
             + " start = dataInd; dataInd < start + lengths[rangeIndex];\n           ++dataInd) {"  # noqa
         )
-    code.append("        const " + IndexType + " idx = indices[dataInd];")
+    code.append(f"        const {IndexType} idx = indices[dataInd];")
     code.append(
         "        if (idx < 0 || idx >= data_size) {\n"
         + "          return false;\n"
@@ -317,9 +317,9 @@ def generic(IndexType, InType, OutType, use_weights, isa, fused, use_offsets):
     )
 
     if InType == "uint8_t":
-        code.append("        " + OutType + " wgt = 1.f;")
+        code.append(f"        {OutType} wgt = 1.f;")
         code.append("        // NOLINTNEXTLINE(cppcoreguidelines-init-variables)")
-        code.append("        " + OutType + " bio;")
+        code.append(f"        {OutType} bio;")
         code.append("        if (weights) {")
         code.append(
             "          wgt = weights[IS_WEIGHT_POSITIONAL ? (dataInd - start) : dataInd];"  # noqa
@@ -337,7 +337,7 @@ def generic(IndexType, InType, OutType, use_weights, isa, fused, use_offsets):
             code.append("        wgt = wgt * scale_bias[2 * idx];")
         code.append("        __m256 vbio = _mm256_set1_ps(bio);")
     else:
-        code.append("        " + OutType + " wgt = 1.f;")
+        code.append(f"        {OutType} wgt = 1.f;")
         code.append("        if (weights) {")
         code.append(
             "          wgt = weights[IS_WEIGHT_POSITIONAL ? (dataInd - start) : dataInd];"  # noqa
@@ -355,7 +355,7 @@ def generic(IndexType, InType, OutType, use_weights, isa, fused, use_offsets):
             IndexType
         )
     )
-    code.append("        const " + IndexType + " idx_pref_T0 = indices[next_T0];")
+    code.append(f"        const {IndexType} idx_pref_T0 = indices[next_T0];")
     code.append(
         "        if (idx_pref_T0 < 0 || idx_pref_T0 >= data_size) {\n"
         + "          return false;\n"
@@ -432,15 +432,15 @@ opts = parser.parse_args()
 if opts.filename:
     filename = opts.filename
 elif opts.fused:
-    if opts.use_offsets:
-        filename = "embedding_lookup_fused_8bit_rowwise_idx_avx2.cc"
-    else:
-        filename = "embedding_lookup_fused_8bit_rowwise_avx2.cc"
+    filename = (
+        "embedding_lookup_fused_8bit_rowwise_idx_avx2.cc"
+        if opts.use_offsets
+        else "embedding_lookup_fused_8bit_rowwise_avx2.cc"
+    )
+elif opts.use_offsets:
+    filename = "embedding_lookup_idx_avx2.cc"
 else:
-    if opts.use_offsets:
-        filename = "embedding_lookup_idx_avx2.cc"
-    else:
-        filename = "embedding_lookup_avx2.cc"
+    filename = "embedding_lookup_avx2.cc"
 
 options = [
     ["int32_t", "int", "float", "float", "float", "float"],
@@ -453,44 +453,41 @@ options = [
     ["int64_t", "int64_t", "uint8_t", "uint8_t", "float", "float"],
 ]
 
-code = []
-# includes
-code.append("//// --------------------------")
-code.append("//// ATTENTION:")
-code.append("//// THIS CODE IS AUTOGENERATED")
-code.append("//// BY {}".format(sys.argv[0]))
-code.append("//// DO NOT MODIFY!!!")
-code.append("//// --------------------------\n")
-
-code.append("#include <c10/util/Half.h>")
-code.append("#include <c10/util/BFloat16.h>")
-code.append("#include <immintrin.h>")
-
-code.append("namespace caffe2 {\n")
+code = [
+    "//// --------------------------",
+    "//// ATTENTION:",
+    "//// THIS CODE IS AUTOGENERATED",
+    f"//// BY {sys.argv[0]}",
+    "//// DO NOT MODIFY!!!",
+    "//// --------------------------\n",
+    "#include <c10/util/Half.h>",
+    "#include <c10/util/BFloat16.h>",
+    "#include <immintrin.h>",
+    "namespace caffe2 {\n",
+]
+suffix = "__avx2_fma"
+# Resolve the Lint warnings: Limit of 80 characters in one line.
+extra_space = "\n      "
 for o in options:
     [IndexTypeName, IndexType, InTypeName, InType, OutTypeName, OutType] = o
 
     prefix = "Fused8BitRowwise" if opts.fused else ""
     code.append("template <bool IS_WEIGHT_POSITIONAL>")
     if opts.use_offsets:
-        fn_base = "{}EmbeddingLookupIdx_{}_{}_{}".format(
-            prefix, IndexTypeName, InTypeName, OutTypeName
-        )
+        fn_base = f"{prefix}EmbeddingLookupIdx_{IndexTypeName}_{InTypeName}_{OutTypeName}"
     else:
-        fn_base = "{}EmbeddingLookup_{}_{}_{}".format(
-            prefix, IndexTypeName, InTypeName, OutTypeName
-        )
-    suffix = "__avx2_fma"
-    fn = "static bool " + fn_base + suffix
-    code.append(fn + "(")
+        fn_base = f"{prefix}EmbeddingLookup_{IndexTypeName}_{InTypeName}_{OutTypeName}"
+    fn = f"static bool {fn_base}{suffix}"
+    code.append(f"{fn}(")
 
-    args = []
-    args.append("    const int64_t block_size,")
-    args.append("    const int64_t output_size,")
-    args.append("    const int64_t index_size,")
-    args.append("    const int64_t data_size,")
-    args.append("    const " + InType + "* input,")
-    args.append("    const " + IndexType + "* indices,")
+    args = [
+        "    const int64_t block_size,",
+        "    const int64_t output_size,",
+        "    const int64_t index_size,",
+        "    const int64_t data_size,",
+        "    const " + InType + "* input,",
+        "    const " + IndexType + "* indices,",
+    ]
     if opts.use_offsets:
         args.append("    const " + IndexType + "* offsets,")
     else:
@@ -502,14 +499,16 @@ for o in options:
     args.append("    " + OutType + "* out) {")
     code += args
 
-    code.append("  const " + IndexType + " prefdist_T0 = 16;")
-    code.append("  // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions,bugprone-narrowing-conversions)")
+    code.extend(
+        (
+            "  const " + IndexType + " prefdist_T0 = 16;",
+            "  // NOLINTNEXTLINE(cppcoreguidelines-narrowing-conversions,bugprone-narrowing-conversions)",
+        )
+    )
     # block_size is the number of elements and fused_block_size is the size of
     # an entire row, including scale and bias.
     offset = (8 // sizeof[InType]) if opts.fused else 0
-    code.append(
-        "  const {} fused_block_size = block_size + {};".format(IndexType, offset)
-    )
+    code.append(f"  const {IndexType} fused_block_size = block_size + {offset};")
     if opts.use_offsets:
         code.append("  int64_t dataInd = 0;")
     else:
@@ -537,19 +536,21 @@ for o in options:
     for is_weight_positional in ["false", "true"]:
         code.append("bool " + fn_base + "_" + is_weight_positional + suffix + "(")
         code += args
-        # Resolve the Lint warnings: Limit of 80 characters in one line.
-        extra_space = "\n      "
         ret_string = "  return " + fn_base + suffix + "<" + is_weight_positional + ">("
         if len(ret_string) <= 80:
             code.append(ret_string)
         else:
             code.append("  return " + fn_base + suffix + "<" + extra_space + is_weight_positional + ">(")
-        code.append("      block_size,")
-        code.append("      output_size,")
-        code.append("      index_size,")
-        code.append("      data_size,")
-        code.append("      input,")
-        code.append("      indices,")
+        code.extend(
+            (
+                "      block_size,",
+                "      output_size,",
+                "      index_size,",
+                "      data_size,",
+                "      input,",
+                "      indices,",
+            )
+        )
         if opts.use_offsets:
             code.append("      offsets,")
         else:
@@ -557,10 +558,7 @@ for o in options:
         code.append("      weights,")
         if not opts.fused:
             code.append("      scale_bias,")
-        code.append("      normalize_by_lengths,")
-        code.append("      out);")
-        code.append("}")
-
+        code.extend(("      normalize_by_lengths,", "      out);", "}"))
     code.append("")
 
 code.append("} // namespace caffe2")

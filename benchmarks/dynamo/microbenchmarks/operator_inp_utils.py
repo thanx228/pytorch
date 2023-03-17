@@ -96,34 +96,28 @@ def deserialize_tensor(size, dtype, stride=None):
 
 
 def serialize_tensor(e):
-    if not e.is_contiguous():
-        return FuncCallWrapper("T", list(e.shape), e.dtype, stride=e.stride())
-    else:
-        return FuncCallWrapper("T", list(e.shape), e.dtype)
+    return (
+        FuncCallWrapper("T", list(e.shape), e.dtype)
+        if e.is_contiguous()
+        else FuncCallWrapper("T", list(e.shape), e.dtype, stride=e.stride())
+    )
 
 
 def serialize_torch_args(e):
-    if isinstance(e, torch.Tensor):
-        if e.is_sparse:
-            return serialize_sparse_tensor(e)
-        return serialize_tensor(e)
-    else:
+    if not isinstance(e, torch.Tensor):
         return truncate_inp(e)
+    return serialize_sparse_tensor(e) if e.is_sparse else serialize_tensor(e)
 
 
 def contains_tensor(elems):
-    for elem in tree_flatten(elems)[0]:
-        if isinstance(elem, torch.Tensor):
-            return True
-    return False
+    return any(isinstance(elem, torch.Tensor) for elem in tree_flatten(elems)[0])
 
 
 def skip_args(elems):
-    for i in tree_flatten(elems)[0]:
-        # only shows up in constructors and ops like that
-        if isinstance(i, (torch.memory_format, torch.storage.UntypedStorage)):
-            return True
-    return False
+    return any(
+        isinstance(i, (torch.memory_format, torch.storage.UntypedStorage))
+        for i in tree_flatten(elems)[0]
+    )
 
 
 def contains_tensor_types(type):
@@ -153,14 +147,14 @@ def non_compute_operator(op):
     if len(tensor_outputs) != 1:
         return False
 
-    for inp in tensor_inps:
-        if inp.alias_info and tensor_outputs[0].alias_info:
-            if inp.alias_info.before_set.intersection(
-                tensor_outputs[0].alias_info.after_set
-            ):
-                return True
-
-    return False
+    return any(
+        inp.alias_info
+        and tensor_outputs[0].alias_info
+        and inp.alias_info.before_set.intersection(
+            tensor_outputs[0].alias_info.after_set
+        )
+        for inp in tensor_inps
+    )
 
 
 class OperatorInputsMode(TorchDispatchMode):
@@ -168,7 +162,7 @@ class OperatorInputsMode(TorchDispatchMode):
         self.func_db = defaultdict(Counter) if func_db is None else func_db
 
     def __torch_dispatch__(self, func_overload, types, args=(), kwargs=None):
-        kwargs = kwargs if kwargs else {}
+        kwargs = kwargs or {}
         arg_meta, kwarg_meta = tree_map(serialize_torch_args, (args, kwargs))
 
         out = func_overload(*args, **kwargs)
@@ -192,7 +186,7 @@ class OperatorInputsMode(TorchDispatchMode):
                     f.write(f"cnt: {count}, ")
                     # repr will add quotation marks around the dtype strings
                     for dtype_abbr in dtype_abbrs.values():
-                        inps = inps.replace("'" + dtype_abbr + "'", dtype_abbr)
+                        inps = inps.replace(f"'{dtype_abbr}'", dtype_abbr)
                     f.write(inps)
                     f.write("\n")
 
@@ -203,7 +197,7 @@ def map_to_device(e, device):
     elif isinstance(e, torch.device):
         return device
     elif isinstance(e, str):
-        if e == "cuda" or e == "cpu":
+        if e in ["cuda", "cpu"]:
             return device.type
     else:
         return e
@@ -305,10 +299,7 @@ class OperatorInputsLoader:
             str(op) in self.operator_db
         ), f"Could not find {op}, must provide overload"
 
-        count = 0
-        for _, counter in self.operator_db[str(op)].items():
-            count += counter
-        return count
+        return sum(counter for _, counter in self.operator_db[str(op)].items())
 
     def merge(self, other):
         for operator, counter_dict in other.operator_db.items():

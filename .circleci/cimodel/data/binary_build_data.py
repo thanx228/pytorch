@@ -97,7 +97,7 @@ class PackageFormatConfigNode(ConfigNode):
 
 class LinuxGccConfigNode(ConfigNode):
     def __init__(self, parent, gcc_config_variant):
-        super().__init__(parent, "GCC_CONFIG_VARIANT=" + str(gcc_config_variant))
+        super().__init__(parent, f"GCC_CONFIG_VARIANT={str(gcc_config_variant)}")
 
         self.props["gcc_config_variant"] = gcc_config_variant
 
@@ -122,7 +122,9 @@ class LinuxGccConfigNode(ConfigNode):
 
 class WindowsLibtorchConfigNode(ConfigNode):
     def __init__(self, parent, libtorch_config_variant):
-        super().__init__(parent, "LIBTORCH_CONFIG_VARIANT=" + str(libtorch_config_variant))
+        super().__init__(
+            parent, f"LIBTORCH_CONFIG_VARIANT={str(libtorch_config_variant)}"
+        )
 
         self.props["libtorch_config_variant"] = libtorch_config_variant
 

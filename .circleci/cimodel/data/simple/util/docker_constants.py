@@ -24,7 +24,7 @@ DOCKER_IMAGE_GCC7, DOCKER_REQUIREMENT_GCC7 = gen_docker_image(
 
 
 def gen_mobile_docker(specifier):
-    container_type = "pytorch-linux-xenial-py3-clang5-" + specifier
+    container_type = f"pytorch-linux-xenial-py3-clang5-{specifier}"
     return gen_docker_image(container_type)
 
 

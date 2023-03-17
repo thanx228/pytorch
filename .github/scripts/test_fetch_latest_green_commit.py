@@ -26,15 +26,15 @@ def set_workflow_job_status(workflow: List[Dict[str, Any]], name: str, status: s
 
 class TestChecks:
     def make_test_checks(self) -> List[Dict[str, Any]]:
-        workflow_checks = []
-        for i in range(len(workflowNames)):
-            workflow_checks.append(WorkflowCheck(
+        return [
+            WorkflowCheck(
                 workflowName=workflowNames[i],
                 name="test/job",
                 jobName="job",
                 conclusion="success",
-            )._asdict())
-        return workflow_checks
+            )._asdict()
+            for i in range(len(workflowNames))
+        ]
 
 class TestPrintCommits(TestCase):
     @mock.patch('fetch_latest_green_commit.get_commit_results', return_value=TestChecks().make_test_checks())

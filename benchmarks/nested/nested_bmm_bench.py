@@ -12,17 +12,16 @@ def bench(nt_a, nt_b, niter):
     start_event = torch.cuda.Event(enable_timing=True)
     end_event = torch.cuda.Event(enable_timing=True)
     start_event.record()
-    for iter in range(niter):
+    for _ in range(niter):
         nt_c = nt_a.bmm(nt_b)
     end_event.record()
     torch.cuda.synchronize()
-    runtime = (start_event.elapsed_time(end_event)) / niter
-    return runtime
+    return (start_event.elapsed_time(end_event)) / niter
 
 
 def sweep_n(niter, dtype):
     for ntensor in [4, 8, 16, 32, 64, 128, 256]:
-        tensors = [torch.randn(256, random.randint(100, 200)) for t in range(ntensor)]
+        tensors = [torch.randn(256, random.randint(100, 200)) for _ in range(ntensor)]
         nt_a = torch.nested.nested_tensor(
             tensors,
             dtype=dtype,

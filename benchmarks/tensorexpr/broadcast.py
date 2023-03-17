@@ -34,13 +34,12 @@ class BroadcastMulBench(benchmark.Benchmark):
                 [1, N, K], device=device, dtype=dtype, requires_grad=self.requires_grad
             )
         else:
-            raise ValueError("invalid case: %s" % (case))
+            raise ValueError(f"invalid case: {case}")
 
         self.inputs = [self.d1, self.d2]
 
     def forward(self, d1, d2):
-        y = d1 + d2
-        return y
+        return d1 + d2
 
     def reference(self):
         return self.numpy(self.d1) + self.numpy(self.d2)
@@ -111,8 +110,7 @@ class BroadcastThreeArgs(benchmark.Benchmark):
         self.inputs = [self.d1, self.d2, self.d3]
 
     def forward(self, d1, d2, d3):
-        y = d1 + d2 + d3
-        return y
+        return d1 + d2 + d3
 
     def reference(self):
         return self.numpy(self.d1) + self.numpy(self.d2) + self.numpy(self.d3)
@@ -211,25 +209,12 @@ class BroadcastBench(benchmark.Benchmark):
 
     @classmethod
     def module(cls):
-        return "broadcast_" + cls.op_str
+        return f"broadcast_{cls.op_str}"
 
     def memory_workload(self):
         input_count = len(self.inputs)
-        if self.mode == "fwd":
-            if self.split_input:
-                sol_count = 1
-                algorithmic_count = 1
-            else:
-                sol_count = 1
-                algorithmic_count = 1
-        else:
-            if self.split_input:
-                sol_count = 1
-                algorithmic_count = input_count
-            else:
-                sol_count = 1
-                algorithmic_count = input_count
-
+        algorithmic_count = 1 if self.mode == "fwd" else input_count
+        sol_count = 1
         buffer_size = self.M * self.N * self.K * 4
         return {
             "sol": buffer_size * sol_count,
@@ -271,8 +256,8 @@ def register_broadcast_ops():
         elif len(binary_op) == 3:
             [op_str, op_pt_func, op_np_func] = binary_op
         split_str = "split" if split_input else "shared"
-        op_str = split_str + "_" + op_str
-        bm_cls = type("BroadcastBench_" + op_str, (BroadcastBench,), {})
+        op_str = f"{split_str}_{op_str}"
+        bm_cls = type(f"BroadcastBench_{op_str}", (BroadcastBench,), {})
         bm_cls.op_str = op_str
         bm_cls.binary_op_pt_func = op_pt_func
         bm_cls.binary_op_np_func = op_np_func
@@ -287,8 +272,8 @@ def register_broadcast_ops():
         elif len(unary_op) == 3:
             [op_str, op_pt_func, op_np_func] = unary_op
         split_str = "split" if split_input else "shared"
-        op_str = split_str + "_" + op_str
-        bm_cls = type("BroadcastBench_" + op_str, (BroadcastBench,), {})
+        op_str = f"{split_str}_{op_str}"
+        bm_cls = type(f"BroadcastBench_{op_str}", (BroadcastBench,), {})
         bm_cls.op_str = op_str
         bm_cls.unary_op_pt_func = op_pt_func
         bm_cls.unary_op_np_func = op_np_func

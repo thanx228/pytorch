@@ -29,8 +29,7 @@ class ObserverBase:
         r"""
         Resets state randomly
         """
-        state = torch.rand(self.state_size)
-        return state
+        return torch.rand(self.state_size)
 
     def step(self, action):
         r"""

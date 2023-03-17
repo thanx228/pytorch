@@ -22,15 +22,16 @@ class _ContextInfo:
         self._stack.append(value)
 
     def exit(self, value):
-        assert len(self._stack) > 0, 'Context %s is empty.' % self.cls
+        assert len(self._stack) > 0, f'Context {self.cls} is empty.'
         assert self._stack.pop() == value
 
     def get_active(self, required=True):
         if len(self._stack) == 0:
             if not required:
                 return None
-            assert self.allow_default, (
-                'Context %s is required but none is active.' % self.cls)
+            assert (
+                self.allow_default
+            ), f'Context {self.cls} is required but none is active.'
             self.enter(self.cls())
         return self._stack[-1]
 
@@ -41,7 +42,7 @@ class _ContextRegistry:
 
     def get(self, cls):
         if cls not in self._ctxs:
-            assert issubclass(cls, Managed), "must be a context managed class, got {}".format(cls)
+            assert issubclass(cls, Managed), f"must be a context managed class, got {cls}"
             self._ctxs[cls] = _ContextInfo(cls, allow_default=issubclass(cls, DefaultManaged))
         return self._ctxs[cls]
 
@@ -76,8 +77,9 @@ class Managed:
     def current(cls, value=None, required=True):
         ctx_info = _context_registry().get(cls)
         if value is not None:
-            assert isinstance(value, cls), (
-                'Wrong context type. Expected: %s, got %s.' % (cls, type(value)))
+            assert isinstance(
+                value, cls
+            ), f'Wrong context type. Expected: {cls}, got {type(value)}.'
             return value
         return ctx_info.get_active(required=required)
 

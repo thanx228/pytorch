@@ -132,8 +132,7 @@ class LayerNorm(serial.SerializedTestCase):
         mean_exp = np.outer(mean, np.ones(X.shape[1]))
         std = np.std(X, axis=1)
         std_exp = np.outer(std, np.ones(X.shape[1]))
-        Y = (X - mean_exp) / std_exp
-        return Y
+        return (X - mean_exp) / std_exp
 
     @given(seed=st.integers(0, 65535),
            batch_size=st.integers(min_value=1, max_value=50),

@@ -268,9 +268,7 @@ class TorchBenchmarkRunner(BenchmarkRunner):
 
         # workaround "RuntimeError: not allowed to set torch.backends.cudnn flags"
         torch.backends.__allow_nonbracketed_mutation_flag = True
-        extra_args = []
-        if part:
-            extra_args = ["--part", part]
+        extra_args = ["--part", part] if part else []
         if is_training:
             benchmark = benchmark_cls(
                 test="train",

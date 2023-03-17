@@ -10,9 +10,9 @@ from caffe2.python import core
 add_long_configs = op_bench.cross_product_configs(
     M=[8, 64, 128],
     N=range(2, 10, 3),
-    K=[2 ** x for x in range(0, 3)],
+    K=[2**x for x in range(3)],
     dtype=["int", "float"],
-    tags=["long"]
+    tags=["long"],
 )
 
 
@@ -34,10 +34,9 @@ class AddBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("add")
 
     def forward(self):
-        op = core.CreateOperator(
+        return core.CreateOperator(
             "Add", [self.input_one, self.input_two], self.output, **self.args
         )
-        return op
 
 
 op_bench_c2.generate_c2_test(add_long_configs + add_short_configs, AddBenchmark)

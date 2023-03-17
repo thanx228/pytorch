@@ -48,8 +48,7 @@ class BahdanauAttention(benchmark.Benchmark):
         att_query = att_query.unsqueeze(2).expand(b, t_q, t_k, n)
         att_keys = att_keys.unsqueeze(1).expand(b, t_q, t_k, n)
         sum_qk = att_query + att_keys + normalize_bias
-        out = torch.tanh(sum_qk).matmul(linear_att)
-        return out
+        return torch.tanh(sum_qk).matmul(linear_att)
 
     def reference(self):
         return self.numpy(self.forward(*self.inputs))

@@ -72,7 +72,7 @@ finally:
 # combination of models supported by HF Fx parser and some manually supplied
 # models. For these models, we already know the largest batch size that can fit
 # on A100 GPUs - 40 GB.
-BATCH_SIZE_KNOWN_MODELS = dict()
+BATCH_SIZE_KNOWN_MODELS = {}
 
 
 # Get the list of models and their batch sizes
@@ -177,15 +177,15 @@ def get_module_cls_by_model_name(model_cls_name):
 
 def get_sequence_length(model_cls, model_name):
     if model_name.startswith(("Blenderbot",)):
-        seq_length = 128
+        return 128
     elif model_name.startswith(("GPT2", "Bart", "T5", "PLBart", "MBart")):
-        seq_length = 1024
+        return 1024
     elif model_name in ("AllenaiLongformerBase", "BigBird"):
-        seq_length = 1024
+        return 1024
     elif model_name.startswith("OPT"):
-        seq_length = 2048
+        return 2048
     elif "Reformer" in model_name:
-        seq_length = 4096
+        return 4096
     elif model_name.startswith(
         (
             "Albert",
@@ -198,17 +198,16 @@ def get_sequence_length(model_cls, model_name):
             "Roberta",
         )
     ) or model_name in ("DistillGPT2", "GoogleFnet", "YituTechConvBert", "CamemBert"):
-        seq_length = 512
+        return 512
     elif model_name in ("TrOCRForCausalLM"):
-        seq_length = 256
+        return 256
     elif model_name.startswith("MobileBert"):
-        seq_length = 128
+        return 128
     else:
         log.warning(
             f"Sequence Length not defined for {model_name}. Choosing 128 arbitrarily"
         )
-        seq_length = 128
-    return seq_length
+        return 128
 
 
 def generate_inputs_for_model(
@@ -216,7 +215,6 @@ def generate_inputs_for_model(
 ):
     # TODO - Check if following values are representative
     num_choices = 3
-    num_visual_features = 42
     seq_length = get_sequence_length(model_cls, model_name)
     vocab_size = model.config.vocab_size
     if model_name.endswith("MultipleChoice"):
@@ -254,6 +252,7 @@ def generate_inputs_for_model(
             model.config.visual_feat_dim,
             model.config.visual_pos_dim,
         )
+        num_visual_features = 42
         input_dict["visual_feats"] = torch.randn(
             bs, num_visual_features, visual_feat_dim
         )
@@ -462,18 +461,12 @@ class HuggingfaceRunner(BenchmarkRunner):
         return set()
 
     def pick_grad(self, name, is_training):
-        if is_training:
-            return torch.enable_grad()
-        else:
-            return torch.no_grad()
+        return torch.enable_grad() if is_training else torch.no_grad()
 
     def get_tolerance_and_cosine_flag(self, is_training, current_device, name):
         cosine = self.args.cosine
         if is_training:
-            if name in REQUIRE_HIGHER_TOLERANCE:
-                return 2e-2, cosine
-            else:
-                return 1e-2, cosine
+            return (2e-2, cosine) if name in REQUIRE_HIGHER_TOLERANCE else (1e-2, cosine)
         return 1e-3, cosine
 
     def compute_loss(self, pred):
@@ -508,7 +501,7 @@ def refresh_model_names_and_batch_sizes():
     """
     import transformers.utils.fx as hf_fx
 
-    family = dict()
+    family = {}
     lm_seen = set()
     family_seen = set()
     for cls_name in hf_fx._SUPPORTED_MODELS:

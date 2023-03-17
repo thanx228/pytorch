@@ -64,7 +64,7 @@ class Header(object):
 
     def write(self, output_filehandle):
         text_lines = [self.title] + self.summary_lines
-        comment_lines = ["# " + x for x in text_lines]
+        comment_lines = [f"# {x}" for x in text_lines]
         lines = miniutils.sandwich([horizontal_rule()], comment_lines)
 
         for line in filter(None, lines):

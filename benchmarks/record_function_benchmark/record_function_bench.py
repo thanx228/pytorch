@@ -56,8 +56,10 @@ def run_bench(model_names, bench_args):
                 if with_rec_fn:
                     torch.autograd._set_empty_test_observer(True, 0.0001)
 
-                print("Running {} RecordFunction, num threads {} ...".format(
-                    "with" if with_rec_fn else "without", num_threads), end=" ")
+                print(
+                    f'Running {"with" if with_rec_fn else "without"} RecordFunction, num threads {num_threads} ...',
+                    end=" ",
+                )
                 sys.stdout.flush()
                 timer = benchmark_utils.Timer(
                     stmt="model(*inputs)",
@@ -82,8 +84,12 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(
         description='Benchmark RecordFunction overhead for ResNet and LSTM models')
 
-    parser.add_argument('--models', nargs='*', default=['lstm_jit'],
-                        help='What model to run: ' + str(MODELS.keys()))
+    parser.add_argument(
+        '--models',
+        nargs='*',
+        default=['lstm_jit'],
+        help=f'What model to run: {str(MODELS.keys())}',
+    )
 
     parser.add_argument('--lstmSeqLength', default='100', type=int)
     parser.add_argument('--lstmNumLayers', default='1', type=int)

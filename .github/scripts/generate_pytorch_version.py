@@ -37,9 +37,7 @@ def get_tag() -> str:
     # ie: 1.7.1-rc1 -> 1.7.1
     tag = re.sub(TRAILING_RC_PATTERN, "", tag)
     # Ignore ciflow tags
-    if tag.startswith("ciflow/"):
-        return ""
-    return tag
+    return "" if tag.startswith("ciflow/") else tag
 
 def get_base_version() -> str:
     root = get_pytorch_root()
@@ -74,7 +72,7 @@ class PytorchVersion:
         return f"{get_tag()}{self.get_post_build_suffix()}"
 
     def get_nightly_version(self) -> str:
-        date_str = datetime.today().strftime('%Y%m%d')
+        date_str = datetime.now().strftime('%Y%m%d')
         build_suffix = self.get_post_build_suffix()
         return f"{get_base_version()}.dev{date_str}{build_suffix}"
 

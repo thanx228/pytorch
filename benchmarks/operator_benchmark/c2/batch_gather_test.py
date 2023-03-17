@@ -43,8 +43,9 @@ class BatchGatherBenchmark(op_bench_c2.Caffe2BenchmarkBase):
         self.set_module_name("batch_gather")
 
     def forward(self):
-        op = core.CreateOperator("BatchGather", [self.input_one, self.index], self.output)
-        return op
+        return core.CreateOperator(
+            "BatchGather", [self.input_one, self.index], self.output
+        )
 
 
 op_bench_c2.generate_c2_test(
